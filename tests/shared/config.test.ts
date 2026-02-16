@@ -14,6 +14,7 @@ describe('loadConfig', () => {
     process.env = { ...originalEnv };
     delete process.env.CLAUDE_DISCORD_CLIENT_ID;
     delete process.env.CLAUDE_DISCORD_PORT;
+    delete process.env.CLAUDE_DISCORD_UPDATE_CHECK;
   });
 
   afterEach(() => {
@@ -34,6 +35,7 @@ describe('loadConfig', () => {
     expect(config.staleCheckInterval).toBe(30_000);
     expect(config.idleTimeout).toBe(600_000);
     expect(config.removeTimeout).toBe(1_800_000);
+    expect(config.updateCheck).toBe(true);
   });
 
   it('reads from config file', async () => {
@@ -65,6 +67,32 @@ describe('loadConfig', () => {
     const config = await loadConfig();
     expect(config.discordClientId).toBe('env-client-id');
     expect(config.daemonPort).toBe(8888);
+  });
+
+  it('reads updateCheck: false from config file', async () => {
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(readFileSync).mockReturnValue(
+      JSON.stringify({
+        updateCheck: false,
+      }),
+    );
+
+    const config = await loadConfig();
+    expect(config.updateCheck).toBe(false);
+  });
+
+  it('CLAUDE_DISCORD_UPDATE_CHECK=0 overrides config', async () => {
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(readFileSync).mockReturnValue(
+      JSON.stringify({
+        updateCheck: true,
+      }),
+    );
+
+    process.env.CLAUDE_DISCORD_UPDATE_CHECK = '0';
+
+    const config = await loadConfig();
+    expect(config.updateCheck).toBe(false);
   });
 
   it('handles invalid JSON in config file gracefully', async () => {

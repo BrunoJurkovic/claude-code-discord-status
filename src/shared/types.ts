@@ -57,10 +57,21 @@ export interface AppConfig {
   staleCheckInterval: number;
   idleTimeout: number;
   removeTimeout: number;
+  updateCheck: boolean;
 }
 
 export interface HealthResponse {
   connected: boolean;
   sessions: number;
   uptime: number;
+  version: string;
+  latestVersion?: string;
+  updateAvailable?: boolean;
+}
+
+export interface UpdateCheckResult {
+  latestVersion: string;
+  currentVersion: string;
+  updateAvailable: boolean;
+  checkedAt: number;
 }

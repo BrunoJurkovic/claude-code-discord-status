@@ -15,6 +15,7 @@ interface ConfigFile {
   staleCheckInterval?: number;
   idleTimeout?: number;
   removeTimeout?: number;
+  updateCheck?: boolean;
 }
 
 export function loadConfig(): AppConfig {
@@ -29,6 +30,10 @@ export function loadConfig(): AppConfig {
     }
   }
 
+  const updateCheckEnv = process.env.CLAUDE_DISCORD_UPDATE_CHECK;
+  const updateCheck =
+    updateCheckEnv !== undefined ? updateCheckEnv !== '0' : (fileConfig.updateCheck ?? true);
+
   return {
     discordClientId:
       process.env.CLAUDE_DISCORD_CLIENT_ID ??
@@ -40,5 +45,6 @@ export function loadConfig(): AppConfig {
     staleCheckInterval: fileConfig.staleCheckInterval ?? STALE_CHECK_INTERVAL,
     idleTimeout: fileConfig.idleTimeout ?? IDLE_TIMEOUT,
     removeTimeout: fileConfig.removeTimeout ?? REMOVE_TIMEOUT,
+    updateCheck,
   };
 }

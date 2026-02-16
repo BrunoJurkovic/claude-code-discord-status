@@ -12,6 +12,9 @@ beforeAll(async () => {
   server = createDaemonServer(registry, () => ({
     connected: true,
     uptime: 42,
+    version: '0.1.0',
+    latestVersion: '0.2.0',
+    updateAvailable: true,
   }));
 
   await new Promise<void>((resolve) => {
@@ -49,6 +52,9 @@ describe('HTTP API', () => {
       expect(body.connected).toBe(true);
       expect(body.uptime).toBe(42);
       expect(typeof body.sessions).toBe('number');
+      expect(body.version).toBe('0.1.0');
+      expect(body.latestVersion).toBe('0.2.0');
+      expect(body.updateAvailable).toBe(true);
     });
   });
 

@@ -1,4 +1,8 @@
 import { defineConfig } from 'tsup';
+import { readFileSync } from 'node:fs';
+
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
+const define = { __VERSION__: JSON.stringify(pkg.version) };
 
 export default defineConfig([
   {
@@ -14,6 +18,7 @@ export default defineConfig([
     banner: {
       js: '#!/usr/bin/env node',
     },
+    define,
   },
   {
     entry: {
@@ -28,5 +33,6 @@ export default defineConfig([
     clean: false,
     dts: false,
     external: ['@xhayper/discord-rpc', '@modelcontextprotocol/sdk', 'zod'],
+    define,
   },
 ]);

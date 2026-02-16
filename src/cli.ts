@@ -10,9 +10,13 @@ import {
   LOG_FILE,
   DEFAULT_PORT,
   DEFAULT_DISCORD_CLIENT_ID,
+  PACKAGE_NAME,
 } from './shared/constants.js';
 import { loadConfig } from './shared/config.js';
 import { formatDuration, statusBadge, connectionBadge } from './cli-utils.js';
+import { VERSION } from './shared/version.js';
+import { readCachedUpdate, isUpdateCheckDisabled } from './shared/update-checker.js';
+import type { HealthResponse } from './shared/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,16 +41,12 @@ function getDaemonPid(): number | null {
   return null;
 }
 
-async function checkHealth(): Promise<{
-  connected: boolean;
-  sessions: number;
-  uptime: number;
-} | null> {
+async function checkHealth(): Promise<HealthResponse | null> {
   const config = loadConfig();
   try {
     const res = await fetch(`http://127.0.0.1:${config.daemonPort}/health`);
     if (res.ok) {
-      return (await res.json()) as { connected: boolean; sessions: number; uptime: number };
+      return (await res.json()) as HealthResponse;
     }
   } catch {
     // Not running
@@ -54,8 +54,72 @@ async function checkHealth(): Promise<{
   return null;
 }
 
+function displayUpdateNotification(): void {
+  const config = loadConfig();
+  if (isUpdateCheckDisabled(config.updateCheck)) return;
+
+  const cached = readCachedUpdate();
+  if (!cached || !cached.updateAvailable) return;
+
+  p.note(
+    `Update available: v${cached.currentVersion} → v${cached.latestVersion}\nRun \`claude-discord-status update\` to update`,
+    'Update',
+  );
+}
+
+async function update(): Promise<void> {
+  p.intro(`claude-discord-status v${VERSION}`);
+
+  const s = p.spinner();
+
+  // Stop daemon if running
+  const pid = getDaemonPid();
+  if (pid) {
+    try {
+      process.kill(pid, 'SIGTERM');
+      p.log.success(`Daemon stopped (PID ${pid})`);
+    } catch {
+      // ignore
+    }
+    try {
+      unlinkSync(PID_FILE);
+    } catch {
+      // ignore
+    }
+  }
+
+  // Run npm install
+  s.start(`Updating ${PACKAGE_NAME}...`);
+  try {
+    execSync(`npm install -g ${PACKAGE_NAME}@latest`, { stdio: 'pipe' });
+    s.stop('Package updated');
+  } catch (err) {
+    s.stop('Update failed');
+    p.log.error(`npm install failed: ${(err as Error).message}`);
+    p.outro();
+    process.exit(1);
+  }
+
+  // Restart daemon
+  const daemonPath = resolve(__dirname, 'daemon', 'index.js');
+  if (existsSync(daemonPath)) {
+    mkdirSync(CONFIG_DIR, { recursive: true });
+    const { openSync } = await import('node:fs');
+    const logFd = openSync(LOG_FILE, 'a');
+    const child = spawn('node', [daemonPath], {
+      detached: true,
+      stdio: ['ignore', logFd, logFd],
+      env: { ...process.env },
+    });
+    child.unref();
+    p.log.success(`Daemon restarted (PID ${child.pid})`);
+  }
+
+  p.outro('Update complete!');
+}
+
 async function startDaemon(background: boolean): Promise<void> {
-  p.intro('claude-discord-status');
+  p.intro(`claude-discord-status v${VERSION}`);
 
   const existing = getDaemonPid();
   if (existing) {
@@ -88,6 +152,7 @@ async function startDaemon(background: boolean): Promise<void> {
     p.log.success(`Daemon started in background (PID ${child.pid})`);
     p.log.info(`Log file: ${LOG_FILE}`);
     p.outro();
+    displayUpdateNotification();
   } else {
     p.log.info('Starting daemon in foreground...');
     p.outro();
@@ -103,7 +168,7 @@ async function startDaemon(background: boolean): Promise<void> {
 }
 
 async function stopDaemon(): Promise<void> {
-  p.intro('claude-discord-status');
+  p.intro(`claude-discord-status v${VERSION}`);
 
   const pid = getDaemonPid();
   if (!pid) {
@@ -126,10 +191,11 @@ async function stopDaemon(): Promise<void> {
   }
 
   p.outro();
+  displayUpdateNotification();
 }
 
 async function showStatus(): Promise<void> {
-  p.intro('claude-discord-status');
+  p.intro(`claude-discord-status v${VERSION}`);
 
   const pid = getDaemonPid();
   const health = await checkHealth();
@@ -144,6 +210,7 @@ async function showStatus(): Promise<void> {
   lines.push(`PID        ${pid ?? 'unknown'}`);
 
   if (health) {
+    lines.push(`Version    v${health.version}`);
     lines.push(`Discord    ${connectionBadge(health.connected)}`);
     lines.push(`Sessions   ${health.sessions} active`);
     lines.push(`Uptime     ${formatDuration(health.uptime * 1000)}`);
@@ -182,6 +249,7 @@ async function showStatus(): Promise<void> {
   }
 
   p.outro();
+  displayUpdateNotification();
 }
 
 async function setup(): Promise<void> {
@@ -517,7 +585,7 @@ async function uninstall(): Promise<void> {
 }
 
 function showHelp(): void {
-  p.intro('claude-discord-status');
+  p.intro(`claude-discord-status v${VERSION}`);
 
   p.note(
     [
@@ -525,12 +593,14 @@ function showHelp(): void {
       'start [-d]   Start the daemon (-d for background)',
       'stop         Stop the daemon',
       'status       Show daemon status and sessions',
+      'update       Update to the latest version',
       'uninstall    Remove all hooks, MCP, and config',
     ].join('\n'),
     'Commands',
   );
 
   p.outro('Discord Rich Presence for Claude Code');
+  displayUpdateNotification();
 }
 
 // Main
@@ -549,6 +619,13 @@ switch (command) {
     break;
   case 'uninstall':
     await uninstall();
+    break;
+  case 'update':
+    await update();
+    break;
+  case '--version':
+  case '-v':
+    console.log(VERSION);
     break;
   default:
     showHelp();

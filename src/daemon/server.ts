@@ -14,7 +14,13 @@ const SessionActivitySchema = z.object({
   priority: z.enum(['hook', 'mcp']).optional(),
 });
 
-type HealthProvider = () => { connected: boolean; uptime: number };
+type HealthProvider = () => {
+  connected: boolean;
+  uptime: number;
+  version: string;
+  latestVersion?: string;
+  updateAvailable?: boolean;
+};
 
 export function createDaemonServer(
   registry: SessionRegistry,
@@ -49,6 +55,9 @@ async function handleRequest(
       connected: health.connected,
       sessions: registry.getSessionCount(),
       uptime: health.uptime,
+      version: health.version,
+      ...(health.latestVersion !== undefined && { latestVersion: health.latestVersion }),
+      ...(health.updateAvailable !== undefined && { updateAvailable: health.updateAvailable }),
     });
     return;
   }
