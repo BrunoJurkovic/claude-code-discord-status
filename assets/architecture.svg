@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" width="800" height="300">
+  <defs>
+    <!-- Arrow marker for blurple arrows -->
+    <marker id="arrow-blurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#5865f2" />
+    </marker>
+    <!-- Arrow marker for secondary arrows -->
+    <marker id="arrow-secondary" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#4e5058" />
+    </marker>
+    <!-- Subtle glow for the daemon box -->
+    <filter id="glow">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#5865f2" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="300" rx="8" fill="#2b2d31" />
+
+  <!-- ==================== BOXES ==================== -->
+
+  <!-- Claude Code box (left) -->
+  <rect x="30" y="115" width="130" height="70" rx="8" fill="#1e1f22" stroke="#3f4147" stroke-width="1" />
+  <text x="95" y="147" text-anchor="middle" fill="#f2f3f5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="600">Claude Code</text>
+  <text x="95" y="167" text-anchor="middle" fill="#b5bac1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="10">CLI</text>
+
+  <!-- Hooks box (middle-top) -->
+  <rect x="270" y="55" width="140" height="65" rx="8" fill="#1e1f22" stroke="#3f4147" stroke-width="1" />
+  <text x="340" y="84" text-anchor="middle" fill="#f2f3f5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="600">Hooks</text>
+  <text x="340" y="102" text-anchor="middle" fill="#b5bac1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="10">lifecycle events</text>
+
+  <!-- MCP Server box (middle-bottom) -->
+  <rect x="270" y="180" width="140" height="65" rx="8" fill="#1e1f22" stroke="#3f4147" stroke-width="1" />
+  <text x="340" y="209" text-anchor="middle" fill="#f2f3f5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="600">MCP Server</text>
+  <text x="340" y="227" text-anchor="middle" fill="#b5bac1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="10">set_discord_status</text>
+
+  <!-- Daemon box (center-right, larger) -->
+  <rect x="500" y="95" width="160" height="110" rx="8" fill="#1e1f22" stroke="#5865f2" stroke-width="1.5" filter="url(#glow)" />
+  <text x="580" y="140" text-anchor="middle" fill="#f2f3f5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" font-weight="700">Daemon</text>
+  <text x="580" y="162" text-anchor="middle" fill="#b5bac1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="10">sessions &middot; resolver &middot; RPC</text>
+  <!-- Tiny port badge -->
+  <rect x="547" y="172" width="66" height="18" rx="9" fill="#5865f2" opacity="0.15" />
+  <text x="580" y="185" text-anchor="middle" fill="#5865f2" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="9" font-weight="500">HTTP API</text>
+
+  <!-- Discord box (far right) -->
+  <rect x="720" y="115" width="60" height="70" rx="8" fill="#1e1f22" stroke="#3f4147" stroke-width="1" />
+  <!-- Discord logo (simplified SVG icon, centered in box) -->
+  <g transform="translate(737, 126) scale(0.45)">
+    <path d="M40.3,6.2C37.3,4.8 34,3.7 30.6,3C30.2,3.7 29.7,4.6 29.4,5.4C25.8,4.8 22.2,4.8 18.6,5.4C18.3,4.6 17.8,3.7 17.3,3C13.9,3.7 10.7,4.8 7.6,6.2C1.1,16 -0.7,25.5 0.2,34.8C4.2,37.8 8.1,39.7 11.9,40.9C12.9,39.5 13.8,38.1 14.5,36.5C13,35.9 11.6,35.2 10.3,34.4C10.6,34.2 10.9,33.9 11.2,33.7C19.3,37.4 28.2,37.4 36.2,33.7C36.5,33.9 36.8,34.2 37.1,34.4C35.8,35.2 34.4,35.9 32.9,36.5C33.6,38.1 34.5,39.5 35.5,40.9C39.3,39.7 43.2,37.8 47.2,34.8C48.3,24 45.6,14.6 40.3,6.2ZM15.9,29.2C13.5,29.2 11.6,27 11.6,24.4C11.6,21.7 13.5,19.5 15.9,19.5C18.3,19.5 20.2,21.7 20.2,24.4C20.2,27 18.3,29.2 15.9,29.2ZM31.5,29.2C29.1,29.2 27.2,27 27.2,24.4C27.2,21.7 29.1,19.5 31.5,19.5C33.9,19.5 35.8,21.7 35.8,24.4C35.8,27 33.9,29.2 31.5,29.2Z" fill="#5865f2" />
+  </g>
+  <text x="750" y="172" text-anchor="middle" fill="#b5bac1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="9">Discord</text>
+
+  <!-- ==================== ARROWS ==================== -->
+
+  <!-- Claude Code → Hooks -->
+  <line x1="160" y1="135" x2="268" y2="92" stroke="#4e5058" stroke-width="1.5" marker-end="url(#arrow-secondary)" />
+  <text x="205" y="103" text-anchor="middle" fill="#4e5058" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="9" font-style="italic">events</text>
+
+  <!-- Claude Code → MCP Server -->
+  <line x1="160" y1="165" x2="268" y2="208" stroke="#4e5058" stroke-width="1.5" marker-end="url(#arrow-secondary)" />
+  <text x="205" y="198" text-anchor="middle" fill="#4e5058" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="9" font-style="italic">tool call</text>
+
+  <!-- Hooks → Daemon -->
+  <line x1="410" y1="88" x2="498" y2="130" stroke="#5865f2" stroke-width="1.5" marker-end="url(#arrow-blurple)" />
+  <text x="448" y="100" text-anchor="middle" fill="#5865f2" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="9" font-weight="500">HTTP POST</text>
+
+  <!-- MCP Server → Daemon -->
+  <line x1="410" y1="212" x2="498" y2="170" stroke="#5865f2" stroke-width="1.5" marker-end="url(#arrow-blurple)" />
+  <text x="448" y="202" text-anchor="middle" fill="#5865f2" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="9" font-weight="500">HTTP POST</text>
+
+  <!-- Daemon → Discord -->
+  <line x1="660" y1="150" x2="718" y2="150" stroke="#5865f2" stroke-width="1.5" marker-end="url(#arrow-blurple)" />
+  <text x="689" y="140" text-anchor="middle" fill="#5865f2" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="8" font-weight="500">Rich Presence</text>
+
+  <!-- ==================== TITLE ==================== -->
+  <text x="400" y="280" text-anchor="middle" fill="#4e5058" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="10">claude-code-discord-status &mdash; architecture</text>
+</svg>

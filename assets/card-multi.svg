@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="142" viewBox="0 0 360 142">
+  <defs>
+    <filter id="cardShadow" x="-6%" y="-8%" width="112%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Card body -->
+  <rect x="4" y="2" width="352" height="136" rx="8" fill="#111214" filter="url(#cardShadow)"/>
+
+  <!-- "PLAYING A GAME" header label -->
+  <text x="20" y="22"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+    font-size="10.5" font-weight="800" fill="#b5bac1" letter-spacing="0.04em">PLAYING A GAME</text>
+
+  <!-- Large image background (rounded square) -->
+  <rect x="20" y="34" width="60" height="60" rx="8" fill="#2b2d31"/>
+
+  <!-- Claude sparkle icon centered in large image (50, 64) -->
+  <g transform="translate(50, 64)">
+    <!-- Main 4-pointed sparkle -->
+    <path d="M0,-19 C1.8,-5 5,-1.8 19,0 C5,1.8 1.8,5 0,19 C-1.8,5 -5,1.8 -19,0 C-5,-1.8 -1.8,-5 0,-19Z" fill="#d97757"/>
+    <!-- Accent sparkle top-right -->
+    <path d="M13,-14 C13.4,-11.5 14.5,-12 16.5,-11.5 C14.5,-11 13.4,-11.5 13,-9 C12.6,-11.5 11.5,-11 9.5,-11.5 C11.5,-12 12.6,-11.5 13,-14Z" fill="#d97757" opacity="0.6"/>
+    <!-- Accent sparkle bottom-left -->
+    <path d="M-13,8 C-12.6,10.5 -11.5,10 -9.5,10.5 C-11.5,11 -12.6,10.5 -13,13 C-13.4,10.5 -14.5,11 -16.5,10.5 C-14.5,10 -13.4,10.5 -13,8Z" fill="#d97757" opacity="0.45"/>
+  </g>
+
+  <!-- Small badge: multi-session icon (bottom-right of large image) -->
+  <circle cx="74" cy="88" r="11" fill="#111214"/>
+  <circle cx="74" cy="88" r="9" fill="#5865f2"/>
+  <!-- Overlapping squares icon (multi-session) -->
+  <g transform="translate(74, 88)">
+    <!-- Back square (offset up-right) -->
+    <rect x="-1.5" y="-5.5" width="7" height="7" rx="1.2" fill="#4752c4" stroke="#e8eaed" stroke-width="1.1"/>
+    <!-- Front square (offset down-left, overlapping) -->
+    <rect x="-5.5" y="-1.5" width="7" height="7" rx="1.2" fill="#5865f2" stroke="#e8eaed" stroke-width="1.1"/>
+  </g>
+
+  <!-- ─── Text content ─── -->
+
+  <!-- Line 1: Application name -->
+  <text x="96" y="49"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+    font-size="13" font-weight="700" fill="#f2f3f5">Claude Code</text>
+
+  <!-- Line 2: Details (quirky multi-session message) -->
+  <text x="96" y="65"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+    font-size="12" font-weight="400" fill="#b5bac1">Dual-wielding codebases</text>
+
+  <!-- Line 3: State (aggregated stats line) -->
+  <text x="96" y="81"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+    font-size="12" font-weight="400" fill="#b5bac1">12 edits &#183; 3 cmds &#183; 28m deep</text>
+
+  <!-- Line 4: Elapsed time -->
+  <g transform="translate(96, 97)">
+    <!-- Clock icon -->
+    <g transform="translate(5, -3)">
+      <circle cx="0" cy="0" r="4.5" fill="none" stroke="#949ba4" stroke-width="1.1"/>
+      <polyline points="0,-2.3 0,0.3 2,1.5" fill="none" stroke="#949ba4" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="13" y="0"
+      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+      font-size="11" font-weight="400" fill="#949ba4">01:47 elapsed</text>
+  </g>
+</svg>

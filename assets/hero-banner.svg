@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 200" width="900" height="200">
+  <defs>
+    <!-- Subtle gradient for background depth -->
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2b2d31"/>
+      <stop offset="50%" stop-color="#2e3035"/>
+      <stop offset="100%" stop-color="#2b2d31"/>
+    </linearGradient>
+
+    <!-- Glow effect for the connection line -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Subtle glow behind icons -->
+    <filter id="icon-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Rounded rectangle clip for the whole banner -->
+    <clipPath id="banner-clip">
+      <rect width="900" height="200" rx="8" ry="8"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <g clip-path="url(#banner-clip)">
+    <rect width="900" height="200" fill="url(#bg-grad)"/>
+
+    <!-- Subtle decorative grid dots (top-left cluster) -->
+    <g fill="#383a40" opacity="0.35">
+      <circle cx="30" cy="25" r="1"/>
+      <circle cx="60" cy="25" r="1"/>
+      <circle cx="90" cy="25" r="1"/>
+      <circle cx="30" cy="50" r="1"/>
+      <circle cx="60" cy="50" r="1"/>
+      <circle cx="90" cy="50" r="1"/>
+      <circle cx="30" cy="75" r="1"/>
+      <circle cx="60" cy="75" r="1"/>
+      <circle cx="90" cy="75" r="1"/>
+    </g>
+    <!-- Subtle decorative grid dots (bottom-right cluster) -->
+    <g fill="#383a40" opacity="0.35">
+      <circle cx="810" cy="125" r="1"/>
+      <circle cx="840" cy="125" r="1"/>
+      <circle cx="870" cy="125" r="1"/>
+      <circle cx="810" cy="150" r="1"/>
+      <circle cx="840" cy="150" r="1"/>
+      <circle cx="870" cy="150" r="1"/>
+      <circle cx="810" cy="175" r="1"/>
+      <circle cx="840" cy="175" r="1"/>
+      <circle cx="870" cy="175" r="1"/>
+    </g>
+
+    <!-- Top accent line (blurple) -->
+    <rect x="0" y="0" width="900" height="1.5" fill="#5865f2" opacity="0.4"/>
+    <!-- Bottom accent line -->
+    <rect x="0" y="198.5" width="900" height="1.5" fill="#5865f2" opacity="0.15"/>
+
+    <!-- ==================== -->
+    <!-- Claude Icon (Left)   -->
+    <!-- ==================== -->
+    <!-- Soft glow behind Claude icon -->
+    <circle cx="155" cy="100" r="32" fill="#d97757" opacity="0.06" filter="url(#icon-glow)"/>
+
+    <!-- Claude sparkle/asterisk symbol -->
+    <g transform="translate(155, 100)" fill="#d97757">
+      <!-- Center dot -->
+      <circle cx="0" cy="0" r="4.5"/>
+      <!-- Cardinal rays (N, S, E, W) -->
+      <path d="M0,-7 C1.8,-12 3.5,-20 0,-30 C-3.5,-20 -1.8,-12 0,-7Z"/>
+      <path d="M0,7 C1.8,12 3.5,20 0,30 C-3.5,20 -1.8,12 0,7Z"/>
+      <path d="M7,0 C12,1.8 20,3.5 30,0 C20,-3.5 12,-1.8 7,0Z"/>
+      <path d="M-7,0 C-12,1.8 -20,3.5 -30,0 C-20,-3.5 -12,-1.8 -7,0Z"/>
+      <!-- Diagonal rays (NE, NW, SE, SW) -->
+      <path d="M5,-5 C9,-7 14.5,-12.5 21,-21 C12.5,-14.5 7,-9 5,-5Z" opacity="0.75"/>
+      <path d="M-5,-5 C-9,-7 -14.5,-12.5 -21,-21 C-12.5,-14.5 -7,-9 -5,-5Z" opacity="0.75"/>
+      <path d="M5,5 C9,7 14.5,12.5 21,21 C12.5,14.5 7,9 5,5Z" opacity="0.75"/>
+      <path d="M-5,5 C-9,7 -14.5,12.5 -21,21 C-12.5,14.5 -7,9 -5,5Z" opacity="0.75"/>
+    </g>
+
+    <!-- Ring around Claude icon -->
+    <circle cx="155" cy="100" r="42" fill="none" stroke="#d97757" stroke-width="1.5" opacity="0.25"/>
+
+    <!-- ========================= -->
+    <!-- Connection (Center area)  -->
+    <!-- ========================= -->
+    <!-- The connection runs below the text block -->
+    <!-- Upper dashed arc connecting the two icons, passing under the text -->
+    <path d="M210,100 C280,100 280,155 350,155 L550,155 C620,155 620,100 690,100"
+          fill="none" stroke="#5865f2" stroke-width="1.5" stroke-dasharray="6,8"
+          opacity="0.3" filter="url(#glow)"/>
+
+    <!-- Small accent dots along the curve -->
+    <circle cx="260" cy="128" r="1.8" fill="#5865f2" opacity="0.45"/>
+    <circle cx="350" cy="155" r="1.8" fill="#5865f2" opacity="0.35"/>
+    <circle cx="450" cy="155" r="2" fill="#5865f2" opacity="0.5"/>
+    <circle cx="550" cy="155" r="1.8" fill="#5865f2" opacity="0.35"/>
+    <circle cx="640" cy="128" r="1.8" fill="#5865f2" opacity="0.45"/>
+
+    <!-- Arrowhead at the right end -->
+    <path d="M684,94 L694,100 L684,106" fill="none" stroke="#5865f2" stroke-width="1.5" opacity="0.45"/>
+
+    <!-- ====================== -->
+    <!-- Discord Icon (Right)   -->
+    <!-- ====================== -->
+    <!-- Soft glow behind Discord icon -->
+    <circle cx="745" cy="100" r="32" fill="#5865f2" opacity="0.06" filter="url(#icon-glow)"/>
+
+    <!-- Discord logo (Clyde) -->
+    <g transform="translate(745, 100)">
+      <path d="M-24,-16 C-24,-16 -20,-20 -12,-22 C-12,-22 -13.5,-20 -14,-18.5
+               C-10,-19.5 -5,-20 0,-20 C5,-20 10,-19.5 14,-18.5
+               C13.5,-20 12,-22 12,-22 C20,-20 24,-16 24,-16
+               C24,-16 28,0 28,16 C24,22 16,24 16,24
+               L13.5,20 C17,19 20,16 20,16
+               C16,18.5 12,20 0,20 C-12,20 -16,18.5 -20,16
+               C-20,16 -17,19 -13.5,20 L-16,24
+               C-16,24 -24,22 -28,16 C-28,0 -24,-16 -24,-16Z"
+            fill="#5865f2" opacity="0.9"/>
+      <!-- Left eye -->
+      <ellipse cx="-10" cy="2" rx="4.5" ry="5.5" fill="#2b2d31"/>
+      <!-- Right eye -->
+      <ellipse cx="10" cy="2" rx="4.5" ry="5.5" fill="#2b2d31"/>
+    </g>
+
+    <!-- Ring around Discord icon -->
+    <circle cx="745" cy="100" r="42" fill="none" stroke="#5865f2" stroke-width="1.5" opacity="0.25"/>
+
+    <!-- ============= -->
+    <!-- Text (Center) -->
+    <!-- ============= -->
+    <!-- Project name -->
+    <text x="450" y="88"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+          font-size="28" font-weight="700" fill="#f2f3f5"
+          text-anchor="middle" letter-spacing="-0.5">
+      claude-code-discord-status
+    </text>
+
+    <!-- Tagline -->
+    <text x="450" y="115"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+          font-size="14" font-weight="400" fill="#b5bac1"
+          text-anchor="middle" letter-spacing="0.3">
+      Show what Claude Code is doing on Discord
+    </text>
+
+    <!-- Small decorative separator under tagline -->
+    <line x1="400" y1="128" x2="500" y2="128" stroke="#5865f2" stroke-width="0.75" opacity="0.2"/>
+  </g>
+</svg>
