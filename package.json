@@ -1,6 +1,6 @@
 {
   "name": "claude-code-discord-status",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Show what Claude Code is doing as a Discord Rich Presence activity card",
   "type": "module",
   "bin": {
