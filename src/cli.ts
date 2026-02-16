@@ -47,7 +47,11 @@ function getDaemonPid(): number | null {
   return null;
 }
 
-async function checkHealth(): Promise<{ connected: boolean; sessions: number; uptime: number } | null> {
+async function checkHealth(): Promise<{
+  connected: boolean;
+  sessions: number;
+  uptime: number;
+} | null> {
   const config = loadConfig();
   try {
     const res = await fetch(`http://127.0.0.1:${config.daemonPort}/health`);
@@ -188,9 +192,7 @@ async function setup(): Promise<void> {
   }
 
   // Prompt for Discord Client ID
-  const clientId = await prompt(
-    `Discord Client ID (press Enter for default): `,
-  );
+  const clientId = await prompt(`Discord Client ID (press Enter for default): `);
   const resolvedClientId = clientId || DEFAULT_DISCORD_CLIENT_ID;
 
   // Write config
@@ -211,7 +213,9 @@ async function setup(): Promise<void> {
     console.log('✓ MCP server registered');
   } catch {
     console.log('⚠ Could not register MCP server automatically.');
-    console.log(`  Run: claude mcp add --transport stdio --scope user discord-status -- node ${mcpPath}`);
+    console.log(
+      `  Run: claude mcp add --transport stdio --scope user discord-status -- node ${mcpPath}`,
+    );
   }
 
   // Merge hooks into ~/.claude/settings.json
@@ -265,7 +269,9 @@ async function setup(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 2000));
   const health = await checkHealth();
   if (health) {
-    console.log(`\n✓ Daemon is running (Discord ${health.connected ? 'connected' : 'connecting...'})`);
+    console.log(
+      `\n✓ Daemon is running (Discord ${health.connected ? 'connected' : 'connecting...'})`,
+    );
   } else {
     console.log('\n⚠ Daemon may not have started. Check logs:');
     console.log(`  cat ${LOG_FILE}`);

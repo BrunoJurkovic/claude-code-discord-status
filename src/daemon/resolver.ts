@@ -11,7 +11,10 @@ import {
 const MAX_FIELD_LENGTH = 128;
 const MIN_FIELD_LENGTH = 2;
 
-export function resolvePresence(sessions: Session[], now: number = Date.now()): DiscordActivity | null {
+export function resolvePresence(
+  sessions: Session[],
+  now: number = Date.now(),
+): DiscordActivity | null {
   if (sessions.length === 0) return null;
 
   if (sessions.length === 1) {
@@ -83,8 +86,10 @@ export function formatStatsLine(sessions: Session[], now: number): string {
 
   const parts: string[] = [];
   if (totals.edits > 0) parts.push(`${totals.edits} ${totals.edits === 1 ? 'edit' : 'edits'}`);
-  if (totals.commands > 0) parts.push(`${totals.commands} ${totals.commands === 1 ? 'cmd' : 'cmds'}`);
-  if (totals.searches > 0) parts.push(`${totals.searches} ${totals.searches === 1 ? 'search' : 'searches'}`);
+  if (totals.commands > 0)
+    parts.push(`${totals.commands} ${totals.commands === 1 ? 'cmd' : 'cmds'}`);
+  if (totals.searches > 0)
+    parts.push(`${totals.searches} ${totals.searches === 1 ? 'search' : 'searches'}`);
   if (totals.reads > 0) parts.push(`${totals.reads} ${totals.reads === 1 ? 'read' : 'reads'}`);
   if (totals.thinks > 0) parts.push(`${totals.thinks} ${totals.thinks === 1 ? 'think' : 'thinks'}`);
 
@@ -106,7 +111,9 @@ export function formatStatsLine(sessions: Session[], now: number): string {
   return joined;
 }
 
-export function detectDominantMode(sessions: Session[]): 'coding' | 'terminal' | 'searching' | 'thinking' | 'mixed' {
+export function detectDominantMode(
+  sessions: Session[],
+): 'coding' | 'terminal' | 'searching' | 'thinking' | 'mixed' {
   const totals = { coding: 0, terminal: 0, searching: 0, thinking: 0 };
 
   for (const session of sessions) {
@@ -179,7 +186,8 @@ export function getMostRecentSession(sessions: Session[]): Session | null {
 
 function sanitizeField(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  const truncated = value.length > MAX_FIELD_LENGTH ? value.slice(0, MAX_FIELD_LENGTH - 1) + '\u2026' : value;
+  const truncated =
+    value.length > MAX_FIELD_LENGTH ? value.slice(0, MAX_FIELD_LENGTH - 1) + '\u2026' : value;
   if (truncated.length < MIN_FIELD_LENGTH) return undefined;
   return truncated;
 }

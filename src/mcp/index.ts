@@ -59,7 +59,11 @@ server.tool(
   `Update your Discord Rich Presence status to let the user's friends know what you're working on. Call this when you start a meaningful task, shift focus, or complete something significant. Write a short, natural description of what you're doing — think of it like a commit message or a brief status update. Examples: 'Fixing the login redirect bug', 'Adding unit tests for the payment module', 'Reviewing PR feedback on the API layer'. Don't update more than once per minute.`,
   {
     details: z.string().max(128).describe('The status message to display (max 128 chars)'),
-    state: z.string().max(128).optional().describe('Secondary context line (defaults to project name)'),
+    state: z
+      .string()
+      .max(128)
+      .optional()
+      .describe('Secondary context line (defaults to project name)'),
     clear: z.boolean().optional().describe('If true, clears the custom status'),
   },
   async ({ details, state, clear }) => {

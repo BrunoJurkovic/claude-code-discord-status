@@ -1,5 +1,10 @@
 import { basename } from 'node:path';
-import type { Session, SessionStartRequest, SessionActivityRequest, ActivityCounts } from '../shared/types.js';
+import type {
+  Session,
+  SessionStartRequest,
+  SessionActivityRequest,
+  ActivityCounts,
+} from '../shared/types.js';
 import { emptyActivityCounts } from '../shared/types.js';
 import { MCP_PRIORITY_WINDOW } from '../shared/constants.js';
 
@@ -102,7 +107,9 @@ export class SessionRegistry {
 
   isInMcpWindow(session: Session, now?: number): boolean {
     const currentTime = now ?? Date.now();
-    return session.lastMcpUpdateAt > 0 && currentTime - session.lastMcpUpdateAt < MCP_PRIORITY_WINDOW;
+    return (
+      session.lastMcpUpdateAt > 0 && currentTime - session.lastMcpUpdateAt < MCP_PRIORITY_WINDOW
+    );
   }
 
   checkStaleSessions(idleTimeout: number, removeTimeout: number): void {

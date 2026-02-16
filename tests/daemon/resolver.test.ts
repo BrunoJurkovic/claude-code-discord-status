@@ -9,7 +9,11 @@ import {
 } from '../../src/daemon/resolver.js';
 import type { Session, ActivityCounts } from '../../src/shared/types.js';
 import { emptyActivityCounts } from '../../src/shared/types.js';
-import { MESSAGE_ROTATION_INTERVAL, MULTI_SESSION_MESSAGES, MULTI_SESSION_TOOLTIPS } from '../../src/shared/constants.js';
+import {
+  MESSAGE_ROTATION_INTERVAL,
+  MULTI_SESSION_MESSAGES,
+  MULTI_SESSION_TOOLTIPS,
+} from '../../src/shared/constants.js';
 
 function makeSession(overrides: Partial<Session> = {}): Session {
   return {
@@ -81,8 +85,18 @@ describe('resolvePresence', () => {
 
     it('returns quirky card for 2 sessions', () => {
       const sessions = [
-        makeSession({ sessionId: 's1', projectName: 'project-a', startedAt: 1000, activityCounts: makeCounts({ edits: 5 }) }),
-        makeSession({ sessionId: 's2', projectName: 'project-b', startedAt: 2000, activityCounts: makeCounts({ edits: 3 }) }),
+        makeSession({
+          sessionId: 's1',
+          projectName: 'project-a',
+          startedAt: 1000,
+          activityCounts: makeCounts({ edits: 5 }),
+        }),
+        makeSession({
+          sessionId: 's2',
+          projectName: 'project-b',
+          startedAt: 2000,
+          activityCounts: makeCounts({ edits: 3 }),
+        }),
       ];
       const activity = resolvePresence(sessions, now)!;
 
@@ -126,8 +140,16 @@ describe('resolvePresence', () => {
 
     it('shows stats line as state', () => {
       const sessions = [
-        makeSession({ sessionId: 's1', startedAt: now - 135 * 60_000, activityCounts: makeCounts({ edits: 23, commands: 8 }) }),
-        makeSession({ sessionId: 's2', startedAt: now - 100 * 60_000, activityCounts: makeCounts({ edits: 5 }) }),
+        makeSession({
+          sessionId: 's1',
+          startedAt: now - 135 * 60_000,
+          activityCounts: makeCounts({ edits: 23, commands: 8 }),
+        }),
+        makeSession({
+          sessionId: 's2',
+          startedAt: now - 100 * 60_000,
+          activityCounts: makeCounts({ edits: 5 }),
+        }),
       ];
       const activity = resolvePresence(sessions, now)!;
 
@@ -211,7 +233,10 @@ describe('formatStatsLine', () => {
 
   it('shows non-zero stats only', () => {
     const sessions = [
-      makeSession({ startedAt: now - 60_000, activityCounts: makeCounts({ edits: 10, commands: 3 }) }),
+      makeSession({
+        startedAt: now - 60_000,
+        activityCounts: makeCounts({ edits: 10, commands: 3 }),
+      }),
     ];
     const result = formatStatsLine(sessions, now);
 
@@ -224,7 +249,10 @@ describe('formatStatsLine', () => {
 
   it('uses singular form for count of 1', () => {
     const sessions = [
-      makeSession({ startedAt: now - 60_000, activityCounts: makeCounts({ edits: 1, commands: 1, searches: 1 }) }),
+      makeSession({
+        startedAt: now - 60_000,
+        activityCounts: makeCounts({ edits: 1, commands: 1, searches: 1 }),
+      }),
     ];
     const result = formatStatsLine(sessions, now);
 
@@ -238,7 +266,10 @@ describe('formatStatsLine', () => {
 
   it('uses plural form for count > 1', () => {
     const sessions = [
-      makeSession({ startedAt: now - 60_000, activityCounts: makeCounts({ edits: 5, searches: 3, reads: 2, thinks: 4 }) }),
+      makeSession({
+        startedAt: now - 60_000,
+        activityCounts: makeCounts({ edits: 5, searches: 3, reads: 2, thinks: 4 }),
+      }),
     ];
     const result = formatStatsLine(sessions, now);
 
@@ -278,8 +309,16 @@ describe('formatStatsLine', () => {
 
   it('aggregates across sessions', () => {
     const sessions = [
-      makeSession({ sessionId: 's1', startedAt: now - 60_000, activityCounts: makeCounts({ edits: 10, commands: 2 }) }),
-      makeSession({ sessionId: 's2', startedAt: now - 30_000, activityCounts: makeCounts({ edits: 5, commands: 3 }) }),
+      makeSession({
+        sessionId: 's1',
+        startedAt: now - 60_000,
+        activityCounts: makeCounts({ edits: 10, commands: 2 }),
+      }),
+      makeSession({
+        sessionId: 's2',
+        startedAt: now - 30_000,
+        activityCounts: makeCounts({ edits: 5, commands: 3 }),
+      }),
     ];
     const result = formatStatsLine(sessions, now);
 
@@ -289,7 +328,10 @@ describe('formatStatsLine', () => {
 
   it('joins parts with middle dot', () => {
     const sessions = [
-      makeSession({ startedAt: now - 60_000, activityCounts: makeCounts({ edits: 5, commands: 3 }) }),
+      makeSession({
+        startedAt: now - 60_000,
+        activityCounts: makeCounts({ edits: 5, commands: 3 }),
+      }),
     ];
     const result = formatStatsLine(sessions, now);
 
@@ -297,9 +339,7 @@ describe('formatStatsLine', () => {
   });
 
   it('returns fallback when no stats and no elapsed time', () => {
-    const sessions = [
-      makeSession({ startedAt: now }),
-    ];
+    const sessions = [makeSession({ startedAt: now })];
     const result = formatStatsLine(sessions, now);
 
     expect(result).toBe('Just getting started');
@@ -310,7 +350,13 @@ describe('formatStatsLine', () => {
     const sessions = [
       makeSession({
         startedAt: now - 999 * 60_000,
-        activityCounts: makeCounts({ edits: 999999, commands: 999999, searches: 999999, reads: 999999, thinks: 999999 }),
+        activityCounts: makeCounts({
+          edits: 999999,
+          commands: 999999,
+          searches: 999999,
+          reads: 999999,
+          thinks: 999999,
+        }),
       }),
     ];
     const result = formatStatsLine(sessions, now);
@@ -328,37 +374,31 @@ describe('detectDominantMode', () => {
   });
 
   it('returns terminal when commands dominate', () => {
-    const sessions = [
-      makeSession({ activityCounts: makeCounts({ commands: 10, edits: 2 }) }),
-    ];
+    const sessions = [makeSession({ activityCounts: makeCounts({ commands: 10, edits: 2 }) })];
     expect(detectDominantMode(sessions)).toBe('terminal');
   });
 
   it('returns searching when searches dominate', () => {
-    const sessions = [
-      makeSession({ activityCounts: makeCounts({ searches: 10, edits: 1 }) }),
-    ];
+    const sessions = [makeSession({ activityCounts: makeCounts({ searches: 10, edits: 1 }) })];
     expect(detectDominantMode(sessions)).toBe('searching');
   });
 
   it('returns thinking when thinks dominate', () => {
-    const sessions = [
-      makeSession({ activityCounts: makeCounts({ thinks: 10, edits: 2 }) }),
-    ];
+    const sessions = [makeSession({ activityCounts: makeCounts({ thinks: 10, edits: 2 }) })];
     expect(detectDominantMode(sessions)).toBe('thinking');
   });
 
   it('returns mixed when no category exceeds 50%', () => {
     const sessions = [
-      makeSession({ activityCounts: makeCounts({ edits: 3, commands: 3, searches: 3, thinks: 3 }) }),
+      makeSession({
+        activityCounts: makeCounts({ edits: 3, commands: 3, searches: 3, thinks: 3 }),
+      }),
     ];
     expect(detectDominantMode(sessions)).toBe('mixed');
   });
 
   it('returns mixed when all counts are zero', () => {
-    const sessions = [
-      makeSession({ activityCounts: emptyActivityCounts() }),
-    ];
+    const sessions = [makeSession({ activityCounts: emptyActivityCounts() })];
     expect(detectDominantMode(sessions)).toBe('mixed');
   });
 
@@ -374,10 +414,7 @@ describe('detectDominantMode', () => {
 
 describe('formatProjectList', () => {
   it('joins project names with separator', () => {
-    const sessions = [
-      makeSession({ projectName: 'alpha' }),
-      makeSession({ projectName: 'beta' }),
-    ];
+    const sessions = [makeSession({ projectName: 'alpha' }), makeSession({ projectName: 'beta' })];
     expect(formatProjectList(sessions)).toBe('alpha \u00b7 beta');
   });
 
