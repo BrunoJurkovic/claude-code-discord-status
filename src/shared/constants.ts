@@ -10,6 +10,11 @@ export const CONFIG_DIR = join(homedir(), '.claude-discord-status');
 export const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 export const PID_FILE = join(CONFIG_DIR, 'daemon.pid');
 export const LOG_FILE = join(CONFIG_DIR, 'daemon.log');
+export const UPDATE_CHECK_FILE = join(CONFIG_DIR, 'update-check.json');
+
+export const UPDATE_CHECK_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
+export const NPM_REGISTRY_URL = 'https://registry.npmjs.org';
+export const PACKAGE_NAME = 'claude-code-discord-status';
 
 export const DEFAULT_DISCORD_CLIENT_ID = '1472915568930848829';
 
@@ -121,6 +126,33 @@ export const MULTI_SESSION_TOOLTIPS: string[] = [
   'The voices (terminals) are talking to me',
   'Rotating between existential code crises',
   'In my parallel processing era',
+];
+
+export const SINGLE_SESSION_STATE_MESSAGES: string[] = [
+  'No thoughts just code',
+  'In my coding era',
+  'Locked in fr',
+  'Vibe coding',
+  'Understood the assignment',
+  'The code is coding',
+  'Ate and left no crumbs',
+  'Trust the process fr',
+  'Lowkey shipping',
+  'Unhinged and compiling',
+  'Not me actually being productive',
+  "It's giving... code",
+  'Real ones are coding rn',
+  'Brain rot but make it code',
+  'Main character in one repo',
+  'Gone nonverbal (coding)',
+  'The voices said ship it',
+  'Slay (but in TypeScript)',
+  'This is my Roman Empire',
+  'Chronically online and coding',
+  'Feral and writing functions',
+  'Core memory: writing code',
+  'Aura +100 (coding)',
+  'No cap just commits',
 ];
 
 export const MODE_FLAVOR: Record<string, string[]> = {

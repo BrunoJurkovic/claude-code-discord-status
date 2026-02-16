@@ -6,6 +6,7 @@ import {
   MULTI_SESSION_MESSAGES,
   MULTI_SESSION_MESSAGES_OVERFLOW,
   MULTI_SESSION_TOOLTIPS,
+  SINGLE_SESSION_STATE_MESSAGES,
 } from '../shared/constants.js';
 
 const MAX_FIELD_LENGTH = 128;
@@ -26,7 +27,7 @@ export function resolvePresence(
 
 function buildSingleSessionActivity(session: Session): DiscordActivity {
   const details = sanitizeField(session.details) ?? 'Using Claude Code';
-  const state = sanitizeField(`Working on ${session.projectName}`) ?? 'Working';
+  const state = stablePick(SINGLE_SESSION_STATE_MESSAGES, session.startedAt, Date.now());
 
   return {
     details,
@@ -130,47 +131,6 @@ export function detectDominantMode(
   const [topMode, topCount] = entries.reduce((a, b) => (b[1] > a[1] ? b : a));
 
   return topCount / total > 0.5 ? topMode : 'mixed';
-}
-
-export function formatProjectList(sessions: Session[]): string {
-  // Count occurrences of each project name
-  const counts = new Map<string, number>();
-  for (const session of sessions) {
-    counts.set(session.projectName, (counts.get(session.projectName) ?? 0) + 1);
-  }
-
-  // Build deduplicated list with counts
-  const names: string[] = [];
-  for (const [name, count] of counts) {
-    names.push(count > 1 ? `${name} (\u00d7${count})` : name);
-  }
-
-  // Join and truncate
-  const joined = names.join(' \u00b7 ');
-  if (joined.length <= MAX_FIELD_LENGTH) {
-    return sanitizeField(joined) ?? 'Multiple projects';
-  }
-
-  // Truncate: add names one by one until we exceed the limit
-  let result = '';
-  let included = 0;
-  for (const name of names) {
-    const separator = included > 0 ? ' \u00b7 ' : '';
-    const remaining = names.length - included - 1;
-    const suffix = remaining > 0 ? ` \u2026 +${remaining} more` : '';
-    const candidate = result + separator + name;
-
-    if (candidate.length + suffix.length > MAX_FIELD_LENGTH) {
-      const leftover = names.length - included;
-      result = result + ` \u2026 +${leftover} more`;
-      break;
-    }
-
-    result = candidate;
-    included++;
-  }
-
-  return sanitizeField(result) ?? 'Multiple projects';
 }
 
 export function getMostRecentSession(sessions: Session[]): Session | null {

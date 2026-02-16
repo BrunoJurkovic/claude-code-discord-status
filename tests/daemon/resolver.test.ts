@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   resolvePresence,
-  formatProjectList,
   getMostRecentSession,
   stablePick,
   formatStatsLine,
@@ -13,6 +12,7 @@ import {
   MESSAGE_ROTATION_INTERVAL,
   MULTI_SESSION_MESSAGES,
   MULTI_SESSION_TOOLTIPS,
+  SINGLE_SESSION_STATE_MESSAGES,
 } from '../../src/shared/constants.js';
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -44,12 +44,12 @@ describe('resolvePresence', () => {
 
   describe('single session mode', () => {
     it('returns detailed card for 1 session', () => {
-      const session = makeSession({ details: 'Refactoring auth', projectName: 'my-project' });
+      const session = makeSession({ details: 'Refactoring auth' });
       const activity = resolvePresence([session])!;
 
       expect(activity).not.toBeNull();
       expect(activity.details).toBe('Refactoring auth');
-      expect(activity.state).toBe('Working on my-project');
+      expect(SINGLE_SESSION_STATE_MESSAGES).toContain(activity.state);
       expect(activity.largeImageKey).toBe('claude-code');
       expect(activity.smallImageKey).toBe('coding');
       expect(activity.startTimestamp).toBe(session.startedAt);
@@ -75,8 +75,28 @@ describe('resolvePresence', () => {
 
       // Single session should NOT show stats line
       expect(activity.details).toBe('Working on auth');
-      expect(activity.state).toBe('Working on my-project');
+      expect(SINGLE_SESSION_STATE_MESSAGES).toContain(activity.state);
       expect(activity.smallImageKey).toBe('coding');
+    });
+
+    it('never leaks project name in any field', () => {
+      const session = makeSession({
+        details: 'Editing file.ts',
+        projectName: 'super-secret-project',
+      });
+      const activity = resolvePresence([session])!;
+
+      const allFields = [
+        activity.details,
+        activity.state,
+        activity.largeImageKey,
+        activity.largeImageText,
+        activity.smallImageKey,
+        activity.smallImageText,
+      ];
+      for (const field of allFields) {
+        expect(field).not.toContain('super-secret-project');
+      }
     });
   });
 
@@ -409,34 +429,6 @@ describe('detectDominantMode', () => {
     ];
     // edits=11, commands=1, total=12, 11/12 > 50%
     expect(detectDominantMode(sessions)).toBe('coding');
-  });
-});
-
-describe('formatProjectList', () => {
-  it('joins project names with separator', () => {
-    const sessions = [makeSession({ projectName: 'alpha' }), makeSession({ projectName: 'beta' })];
-    expect(formatProjectList(sessions)).toBe('alpha \u00b7 beta');
-  });
-
-  it('deduplicates with count', () => {
-    const sessions = [
-      makeSession({ sessionId: 's1', projectName: 'alpha' }),
-      makeSession({ sessionId: 's2', projectName: 'alpha' }),
-      makeSession({ sessionId: 's3', projectName: 'beta' }),
-    ];
-    expect(formatProjectList(sessions)).toBe('alpha (\u00d72) \u00b7 beta');
-  });
-
-  it('truncates long lists to 128 chars', () => {
-    const sessions = Array.from({ length: 20 }, (_, i) =>
-      makeSession({
-        sessionId: `s${i}`,
-        projectName: `really-long-project-name-${i}`,
-      }),
-    );
-    const result = formatProjectList(sessions);
-    expect(result.length).toBeLessThanOrEqual(128);
-    expect(result).toContain('more');
   });
 });
 
