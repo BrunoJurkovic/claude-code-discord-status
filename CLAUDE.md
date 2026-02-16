@@ -28,7 +28,7 @@ npm run format       # Prettier write
 npm run format:check # Prettier check
 ```
 
-Always run `npm run typecheck && npm test` after making changes.
+Always run `npm run format && npm run typecheck && npm test` before committing.
 
 ## Project Structure
 

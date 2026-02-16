@@ -171,7 +171,9 @@ async function showStatus(): Promise<void> {
             ? formatDuration(Date.now() - new Date(s.startedAt).getTime())
             : '';
           const badge = statusBadge(s.status);
-          p.log.step(`${s.projectName}\n  ${s.details} — ${badge}${elapsed ? ` — ${elapsed}` : ''}`);
+          p.log.step(
+            `${s.projectName}\n  ${s.details} — ${badge}${elapsed ? ` — ${elapsed}` : ''}`,
+          );
         }
       }
     }
