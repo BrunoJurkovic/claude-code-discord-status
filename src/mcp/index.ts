@@ -1,7 +1,14 @@
+import { spawn } from 'node:child_process';
+import { existsSync, openSync, mkdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { DEFAULT_PORT } from '../shared/constants.js';
+import { DEFAULT_PORT, CONFIG_DIR, LOG_FILE } from '../shared/constants.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const DAEMON_PORT = process.env.CLAUDE_DISCORD_PORT
   ? parseInt(process.env.CLAUDE_DISCORD_PORT, 10)
@@ -9,6 +16,39 @@ const DAEMON_PORT = process.env.CLAUDE_DISCORD_PORT
 const DAEMON_URL = `http://127.0.0.1:${DAEMON_PORT}`;
 
 let cachedSessionId: string | null = null;
+
+async function isDaemonRunning(): Promise<boolean> {
+  try {
+    const res = await fetch(`${DAEMON_URL}/health`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureDaemon(): Promise<void> {
+  if (await isDaemonRunning()) return;
+
+  const daemonPath = resolve(__dirname, '..', 'daemon', 'index.js');
+  if (!existsSync(daemonPath)) return;
+
+  mkdirSync(CONFIG_DIR, { recursive: true });
+  const logFd = openSync(LOG_FILE, 'a');
+  const child = spawn('node', [daemonPath], {
+    detached: true,
+    stdio: ['ignore', logFd, logFd],
+    env: { ...process.env },
+  });
+  child.unref();
+
+  // Wait briefly for the daemon to be ready
+  for (let i = 0; i < 10; i++) {
+    await new Promise((r) => setTimeout(r, 300));
+    if (await isDaemonRunning()) return;
+  }
+}
 
 async function findOrCreateSession(): Promise<string> {
   if (cachedSessionId) return cachedSessionId;
@@ -115,6 +155,8 @@ server.tool(
     }
   },
 );
+
+await ensureDaemon();
 
 const transport = new StdioServerTransport();
 server.connect(transport).catch((err) => {
