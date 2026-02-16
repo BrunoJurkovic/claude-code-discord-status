@@ -15,7 +15,11 @@ import {
 import { loadConfig } from './shared/config.js';
 import { formatDuration, statusBadge, connectionBadge } from './cli-utils.js';
 import { VERSION } from './shared/version.js';
-import { readCachedUpdate, isUpdateCheckDisabled } from './shared/update-checker.js';
+import {
+  readCachedUpdate,
+  isUpdateCheckDisabled,
+  compareVersions,
+} from './shared/update-checker.js';
 import type { HealthResponse } from './shared/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -59,10 +63,13 @@ function displayUpdateNotification(): void {
   if (isUpdateCheckDisabled(config.updateCheck)) return;
 
   const cached = readCachedUpdate();
-  if (!cached || !cached.updateAvailable) return;
+  if (!cached) return;
+
+  // Compare against actual running version, not the stale cached currentVersion
+  if (compareVersions(VERSION, cached.latestVersion) >= 0) return;
 
   p.note(
-    `Update available: v${cached.currentVersion} → v${cached.latestVersion}\nRun \`claude-discord-status update\` to update`,
+    `Update available: v${VERSION} → v${cached.latestVersion}\nRun \`claude-discord-status update\` to update`,
     'Update',
   );
 }
