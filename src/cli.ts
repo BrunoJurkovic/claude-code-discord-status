@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
-import { createInterface } from 'node:readline';
 import { spawn, execSync } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as p from '@clack/prompts';
 import {
   CONFIG_DIR,
   CONFIG_FILE,
@@ -12,6 +12,7 @@ import {
   DEFAULT_DISCORD_CLIENT_ID,
 } from './shared/constants.js';
 import { loadConfig } from './shared/config.js';
+import { formatDuration, statusBadge, connectionBadge } from './cli-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,25 +20,14 @@ const __dirname = dirname(__filename);
 const args = process.argv.slice(2);
 const command = args[0];
 
-function prompt(question: string): Promise<string> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
-
 function getDaemonPid(): number | null {
   try {
     if (existsSync(PID_FILE)) {
       const pid = parseInt(readFileSync(PID_FILE, 'utf-8').trim(), 10);
-      process.kill(pid, 0); // Check if alive
+      process.kill(pid, 0);
       return pid;
     }
   } catch {
-    // PID file exists but process is dead
     try {
       unlinkSync(PID_FILE);
     } catch {
@@ -65,17 +55,21 @@ async function checkHealth(): Promise<{
 }
 
 async function startDaemon(background: boolean): Promise<void> {
+  p.intro('claude-discord-status');
+
   const existing = getDaemonPid();
   if (existing) {
-    console.log(`Daemon is already running (PID ${existing})`);
+    p.log.warn(`Daemon is already running (PID ${existing})`);
+    p.outro();
     return;
   }
 
   const daemonPath = resolve(__dirname, 'daemon', 'index.js');
 
   if (!existsSync(daemonPath)) {
-    console.error(`Daemon entry point not found at ${daemonPath}`);
-    console.error('Run `npm run build` first.');
+    p.log.error(`Daemon entry point not found at ${daemonPath}`);
+    p.log.info('Run `npm run build` first.');
+    p.outro();
     process.exit(1);
   }
 
@@ -91,10 +85,12 @@ async function startDaemon(background: boolean): Promise<void> {
     });
     child.unref();
 
-    console.log(`Daemon started in background (PID ${child.pid})`);
-    console.log(`Log file: ${LOG_FILE}`);
+    p.log.success(`Daemon started in background (PID ${child.pid})`);
+    p.log.info(`Log file: ${LOG_FILE}`);
+    p.outro();
   } else {
-    console.log('Starting daemon in foreground...');
+    p.log.info('Starting daemon in foreground...');
+    p.outro();
 
     const child = spawn('node', [daemonPath], {
       stdio: 'inherit',
@@ -107,17 +103,20 @@ async function startDaemon(background: boolean): Promise<void> {
 }
 
 async function stopDaemon(): Promise<void> {
+  p.intro('claude-discord-status');
+
   const pid = getDaemonPid();
   if (!pid) {
-    console.log('Daemon is not running.');
+    p.log.info('Daemon is not running.');
+    p.outro();
     return;
   }
 
   try {
     process.kill(pid, 'SIGTERM');
-    console.log(`Daemon stopped (PID ${pid})`);
+    p.log.success(`Daemon stopped (PID ${pid})`);
   } catch {
-    console.log('Daemon process not found, cleaning up PID file.');
+    p.log.info('Daemon process not found, cleaning up PID file.');
   }
 
   try {
@@ -125,26 +124,34 @@ async function stopDaemon(): Promise<void> {
   } catch {
     // ignore
   }
+
+  p.outro();
 }
 
 async function showStatus(): Promise<void> {
+  p.intro('claude-discord-status');
+
   const pid = getDaemonPid();
   const health = await checkHealth();
 
   if (!pid && !health) {
-    console.log('Daemon is not running.');
+    p.log.info('Daemon is not running.');
+    p.outro();
     return;
   }
 
-  console.log(`Daemon PID: ${pid ?? 'unknown'}`);
+  const lines: string[] = [];
+  lines.push(`PID        ${pid ?? 'unknown'}`);
 
   if (health) {
-    console.log(`Discord connected: ${health.connected}`);
-    console.log(`Active sessions: ${health.sessions}`);
-    console.log(`Uptime: ${health.uptime}s`);
+    lines.push(`Discord    ${connectionBadge(health.connected)}`);
+    lines.push(`Sessions   ${health.sessions} active`);
+    lines.push(`Uptime     ${formatDuration(health.uptime * 1000)}`);
   } else {
-    console.log('Could not reach daemon health endpoint.');
+    lines.push(`Health     Could not reach daemon`);
   }
+
+  p.note(lines.join('\n'), 'Daemon Status');
 
   // Show active sessions
   const config = loadConfig();
@@ -156,64 +163,136 @@ async function showStatus(): Promise<void> {
         projectName: string;
         details: string;
         status: string;
+        startedAt: string;
       }>;
       if (sessions.length > 0) {
-        console.log('\nActive sessions:');
         for (const s of sessions) {
-          console.log(`  ${s.projectName} — ${s.details} [${s.status}]`);
+          const elapsed = s.startedAt
+            ? formatDuration(Date.now() - new Date(s.startedAt).getTime())
+            : '';
+          const badge = statusBadge(s.status);
+          p.log.step(`${s.projectName}\n  ${s.details} — ${badge}${elapsed ? ` — ${elapsed}` : ''}`);
         }
       }
     }
   } catch {
     // ignore
   }
+
+  p.outro();
 }
 
 async function setup(): Promise<void> {
-  console.log('Claude Code Discord Status — Setup\n');
+  p.intro('claude-discord-status');
 
-  // Check Node version
-  const nodeVersion = parseInt(process.versions.node.split('.')[0], 10);
-  if (nodeVersion < 18) {
-    console.error(`Node.js >= 18 required (found ${process.versions.node})`);
+  // --- Prerequisites ---
+  const nodeVersion = process.versions.node;
+  const nodeMajor = parseInt(nodeVersion.split('.')[0], 10);
+  if (nodeMajor < 18) {
+    p.log.error(`Node.js >= 18 required (found ${nodeVersion})`);
+    p.outro();
     process.exit(1);
   }
-  console.log(`✓ Node.js ${process.versions.node}`);
 
-  // Check jq
+  let jqVersion = '';
   try {
-    execSync('jq --version', { stdio: 'pipe' });
-    console.log('✓ jq found');
+    jqVersion = execSync('jq --version', { stdio: 'pipe' }).toString().trim();
   } catch {
-    console.error('✗ jq is required but not found. Install it:');
-    console.error('  macOS: brew install jq');
-    console.error('  Ubuntu: sudo apt install jq');
+    p.log.error('jq is required but not found.');
+    p.log.info('  macOS: brew install jq');
+    p.log.info('  Ubuntu: sudo apt install jq');
+    p.outro();
     process.exit(1);
   }
 
-  // Prompt for Discord Client ID
-  const clientId = await prompt(`Discord Client ID (press Enter for default): `);
-  const resolvedClientId = clientId || DEFAULT_DISCORD_CLIENT_ID;
+  p.log.success(`Node.js ${nodeVersion}`);
+  p.log.success(`jq ${jqVersion}`);
 
-  // Write config
+  // --- Configuration ---
+  let resolvedClientId = DEFAULT_DISCORD_CLIENT_ID;
+  const existingConfig = existsSync(CONFIG_FILE);
+
+  if (existingConfig) {
+    try {
+      const current = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'));
+      if (current.discordClientId) {
+        resolvedClientId = current.discordClientId;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const useCustomApp = await p.confirm({
+    message: 'Use a custom Discord app? (default shows as "Claude Code")',
+    initialValue: false,
+  });
+
+  if (p.isCancel(useCustomApp)) {
+    p.cancel('Setup cancelled.');
+    process.exit(0);
+  }
+
+  if (useCustomApp) {
+    const clientId = await p.text({
+      message: 'Discord Client ID',
+      placeholder: DEFAULT_DISCORD_CLIENT_ID,
+      validate: (value = '') => {
+        if (!value.trim()) return 'Client ID is required';
+        if (!/^\d+$/.test(value.trim())) return 'Client ID must be numeric';
+      },
+    });
+
+    if (p.isCancel(clientId)) {
+      p.cancel('Setup cancelled.');
+      process.exit(0);
+    }
+
+    resolvedClientId = clientId.trim();
+  }
+
+  if (resolvedClientId === DEFAULT_DISCORD_CLIENT_ID) {
+    p.log.info('Using default Client ID');
+  } else {
+    p.log.info(`Using custom Client ID: ${resolvedClientId}`);
+  }
+
   mkdirSync(CONFIG_DIR, { recursive: true });
   const config = {
     discordClientId: resolvedClientId,
     daemonPort: DEFAULT_PORT,
   };
   writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
-  console.log(`✓ Config written to ${CONFIG_FILE}`);
+  p.log.success(`Config written to ${CONFIG_FILE}`);
 
-  // Register MCP server
-  const mcpPath = resolve(__dirname, 'mcp', 'index.js');
+  // --- Installation ---
+
+  // Check if claude CLI exists
+  let hasClaude = false;
   try {
-    execSync(`claude mcp add --transport stdio --scope user discord-status -- node ${mcpPath}`, {
-      stdio: 'pipe',
-    });
-    console.log('✓ MCP server registered');
+    execSync('which claude', { stdio: 'pipe' });
+    hasClaude = true;
   } catch {
-    console.log('⚠ Could not register MCP server automatically.');
-    console.log(
+    // claude CLI not found
+  }
+
+  const mcpPath = resolve(__dirname, 'mcp', 'index.js');
+
+  if (hasClaude) {
+    try {
+      execSync(`claude mcp add --transport stdio --scope user discord-status -- node ${mcpPath}`, {
+        stdio: 'pipe',
+      });
+      p.log.success('MCP server registered');
+    } catch {
+      p.log.warn('Could not register MCP server automatically.');
+      p.log.info(
+        `  Run: claude mcp add --transport stdio --scope user discord-status -- node ${mcpPath}`,
+      );
+    }
+  } else {
+    p.log.warn('claude CLI not found — skipping MCP registration.');
+    p.log.info(
       `  Run: claude mcp add --transport stdio --scope user discord-status -- node ${mcpPath}`,
     );
   }
@@ -238,17 +317,21 @@ async function setup(): Promise<void> {
 
     const existingHooks = (existingSettings.hooks ?? {}) as Record<string, unknown[]>;
     const newHooks = hookConfig.hooks as Record<string, unknown[]>;
+    let hooksAdded = 0;
+    let hooksSkipped = 0;
 
     for (const [event, entries] of Object.entries(newHooks)) {
       if (!existingHooks[event]) {
         existingHooks[event] = [];
       }
-      // Only add if not already present (check by command)
       for (const entry of entries) {
         const entryStr = JSON.stringify(entry);
         const alreadyExists = existingHooks[event].some((e) => JSON.stringify(e) === entryStr);
         if (!alreadyExists) {
           existingHooks[event].push(entry);
+          hooksAdded++;
+        } else {
+          hooksSkipped++;
         }
       }
     }
@@ -256,28 +339,61 @@ async function setup(): Promise<void> {
     existingSettings.hooks = existingHooks;
     mkdirSync(dirname(claudeSettingsPath), { recursive: true });
     writeFileSync(claudeSettingsPath, JSON.stringify(existingSettings, null, 2), 'utf-8');
-    console.log('✓ Hooks configured');
+
+    if (hooksAdded > 0 && hooksSkipped > 0) {
+      p.log.success(`Hooks configured (${hooksAdded} added, ${hooksSkipped} already present)`);
+    } else if (hooksAdded > 0) {
+      p.log.success(`Hooks configured (${hooksAdded} lifecycle events)`);
+    } else {
+      p.log.success('Hooks already configured (no changes)');
+    }
   } catch (err) {
-    console.log(`⚠ Could not configure hooks: ${(err as Error).message}`);
-    console.log(`  Manually add hooks to ${claudeSettingsPath}`);
+    p.log.warn(`Could not configure hooks: ${(err as Error).message}`);
+    p.log.info(`  Manually add hooks to ${claudeSettingsPath}`);
   }
 
   // Start daemon
-  await startDaemon(true);
-
-  // Wait a moment and verify
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-  const health = await checkHealth();
-  if (health) {
-    console.log(
-      `\n✓ Daemon is running (Discord ${health.connected ? 'connected' : 'connecting...'})`,
-    );
+  const existingPid = getDaemonPid();
+  if (existingPid) {
+    p.log.success(`Daemon already running (PID ${existingPid})`);
   } else {
-    console.log('\n⚠ Daemon may not have started. Check logs:');
-    console.log(`  cat ${LOG_FILE}`);
+    const daemonPath = resolve(__dirname, 'daemon', 'index.js');
+    mkdirSync(CONFIG_DIR, { recursive: true });
+
+    const { openSync } = await import('node:fs');
+    const logFd = openSync(LOG_FILE, 'a');
+    const child = spawn('node', [daemonPath], {
+      detached: true,
+      stdio: ['ignore', logFd, logFd],
+      env: { ...process.env },
+    });
+    child.unref();
+    p.log.success(`Daemon started (PID ${child.pid})`);
   }
 
-  console.log('\nSetup complete! Your Discord status will update when using Claude Code.');
+  // --- Verification ---
+  const s = p.spinner();
+  s.start('Verifying Discord connection...');
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  const health = await checkHealth();
+
+  if (health) {
+    if (health.connected) {
+      s.stop('Discord connected');
+    } else {
+      s.stop('Discord is connecting (open Discord if not running)');
+    }
+  } else {
+    s.stop('Could not reach daemon — check logs');
+    p.log.info(`  cat ${LOG_FILE}`);
+  }
+
+  p.note(
+    'Open Discord and check your profile — you\nshould see "Using Claude Code" as activity.',
+    'Next steps',
+  );
+
+  p.outro('Setup complete!');
 }
 
 function createHookConfig(hookCommand: string) {
@@ -317,17 +433,42 @@ function createHookConfig(hookCommand: string) {
 }
 
 async function uninstall(): Promise<void> {
-  console.log('Uninstalling Claude Code Discord Status...\n');
+  p.intro('claude-discord-status');
+
+  const shouldContinue = await p.confirm({
+    message: 'This will remove all hooks, MCP registration, and config. Continue?',
+    initialValue: false,
+  });
+
+  if (p.isCancel(shouldContinue) || !shouldContinue) {
+    p.cancel('Uninstall cancelled.');
+    process.exit(0);
+  }
 
   // Stop daemon
-  await stopDaemon();
+  const pid = getDaemonPid();
+  if (pid) {
+    try {
+      process.kill(pid, 'SIGTERM');
+      p.log.success(`Daemon stopped (PID ${pid})`);
+    } catch {
+      p.log.info('Daemon process not found, cleaning up PID file.');
+    }
+    try {
+      unlinkSync(PID_FILE);
+    } catch {
+      // ignore
+    }
+  } else {
+    p.log.info('Daemon was not running');
+  }
 
   // Remove MCP server
   try {
     execSync('claude mcp remove discord-status', { stdio: 'pipe' });
-    console.log('✓ MCP server removed');
+    p.log.success('MCP server removed');
   } catch {
-    console.log('⚠ Could not remove MCP server (may not have been registered)');
+    p.log.warn('Could not remove MCP server (may not have been registered)');
   }
 
   // Remove hooks from settings
@@ -354,23 +495,40 @@ async function uninstall(): Promise<void> {
           delete settings.hooks;
         }
         writeFileSync(claudeSettingsPath, JSON.stringify(settings, null, 2), 'utf-8');
-        console.log('✓ Hooks removed');
+        p.log.success('Hooks removed');
       }
     }
   } catch {
-    console.log('⚠ Could not clean up hooks');
+    p.log.warn('Could not clean up hooks');
   }
 
   // Remove config
   try {
     const { rmSync } = await import('node:fs');
     rmSync(CONFIG_DIR, { recursive: true, force: true });
-    console.log('✓ Config removed');
+    p.log.success('Config removed');
   } catch {
-    console.log('⚠ Could not remove config directory');
+    p.log.warn('Could not remove config directory');
   }
 
-  console.log('\nUninstall complete.');
+  p.outro('Uninstall complete.');
+}
+
+function showHelp(): void {
+  p.intro('claude-discord-status');
+
+  p.note(
+    [
+      'setup        Interactive setup',
+      'start [-d]   Start the daemon (-d for background)',
+      'stop         Stop the daemon',
+      'status       Show daemon status and sessions',
+      'uninstall    Remove all hooks, MCP, and config',
+    ].join('\n'),
+    'Commands',
+  );
+
+  p.outro('Discord Rich Presence for Claude Code');
 }
 
 // Main
@@ -391,13 +549,6 @@ switch (command) {
     await uninstall();
     break;
   default:
-    console.log(`claude-discord-status — Discord Rich Presence for Claude Code
-
-Usage:
-  claude-discord-status setup        Interactive setup
-  claude-discord-status start [-d]   Start the daemon (-d for background)
-  claude-discord-status stop         Stop the daemon
-  claude-discord-status status       Show daemon status and sessions
-  claude-discord-status uninstall    Remove all hooks, MCP, and config`);
+    showHelp();
     break;
 }
