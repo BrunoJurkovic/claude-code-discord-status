@@ -19,9 +19,9 @@
 ## Preview
 
 <p align="center">
-  <img src="./assets/card-single.svg" alt="Single session card" width="360" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="./assets/card-multi.svg" alt="Multi-session card" width="360" />
+  <img src="./assets/card-single.svg" alt="Single session card" width="340" />
+  &nbsp;&nbsp;
+  <img src="./assets/card-multi.svg" alt="Multi-session card" width="340" />
 </p>
 
 <p align="center">
