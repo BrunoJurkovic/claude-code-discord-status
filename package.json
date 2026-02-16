@@ -14,7 +14,8 @@
     "lint": "eslint src/",
     "format": "prettier --write 'src/**/*.ts' 'tests/**/*.ts'",
     "format:check": "prettier --check 'src/**/*.ts' 'tests/**/*.ts'",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "keywords": [
     "claude",
@@ -23,8 +24,16 @@
     "claude-code",
     "status"
   ],
-  "author": "",
+  "author": "Bruno Jurkovic",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BrunoJurkovic/claude-code-discord-status.git"
+  },
+  "homepage": "https://github.com/BrunoJurkovic/claude-code-discord-status#readme",
+  "bugs": {
+    "url": "https://github.com/BrunoJurkovic/claude-code-discord-status/issues"
+  },
   "engines": {
     "node": ">=18"
   },

@@ -46,16 +46,10 @@
 - Discord desktop app running
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed
 
-### Install
-
-```bash
-npm install -g claude-code-discord-status
-```
-
 ### Setup
 
 ```bash
-claude-discord-status setup
+npx claude-code-discord-status setup
 ```
 
 This will:
@@ -84,11 +78,11 @@ Three components work together:
 ## CLI
 
 ```bash
-claude-discord-status setup          # Interactive setup wizard
-claude-discord-status status         # Check daemon status and active sessions
-claude-discord-status start -d       # Start daemon in background
-claude-discord-status stop           # Stop the daemon
-claude-discord-status uninstall      # Remove everything
+npx claude-code-discord-status setup          # Interactive setup wizard
+npx claude-code-discord-status status         # Check daemon status and active sessions
+npx claude-code-discord-status start -d       # Start daemon in background
+npx claude-code-discord-status stop           # Stop the daemon
+npx claude-code-discord-status uninstall      # Remove everything
 ```
 
 ## Configuration
