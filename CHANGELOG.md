@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/BrunoJurkovic/claude-code-discord-status/compare/v1.0.0...v1.0.1) (2026-02-16)
+
+
+### Bug Fixes
+
+* compare update notification against running version instead of stale cache ([ea86241](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/ea862415721cb1781bb19eb447c466504fccc53f))
+
 ## 1.0.0 (2026-02-16)
 
 
