@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.0](https://github.com/BrunoJurkovic/claude-code-discord-status/compare/v1.0.1...v1.1.0) (2026-02-17)
+
+
+### Features
+
+* redesign Discord status icons with official Claude starburst ([9ffa677](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/9ffa677174b0b0684f83e93342107f2611019781))
+* replace single session details with action-specific messages ([0e0d273](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/0e0d27315ca2d60cb36d97d5287666b51b83abc8))
+* show changelog after updating ([7dbc45c](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/7dbc45cfdd27046aa232966b539539ab8aaa4ae2))
+
+
+### Bug Fixes
+
+* prevent active file names from leaking to Discord status ([141cab2](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/141cab2d5eecb1c95499cdc549f33fd019b9c1b5))
+
 ## [1.0.1](https://github.com/BrunoJurkovic/claude-code-discord-status/compare/v1.0.0...v1.0.1) (2026-02-16)
 
 
