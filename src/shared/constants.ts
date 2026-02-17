@@ -11,6 +11,8 @@ export const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 export const PID_FILE = join(CONFIG_DIR, 'daemon.pid');
 export const LOG_FILE = join(CONFIG_DIR, 'daemon.log');
 export const UPDATE_CHECK_FILE = join(CONFIG_DIR, 'update-check.json');
+export const LAST_SEEN_VERSION_FILE = join(CONFIG_DIR, 'last-seen-version');
+export const PENDING_CHANGELOG_FILE = join(CONFIG_DIR, 'pending-changelog');
 
 export const UPDATE_CHECK_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
 export const NPM_REGISTRY_URL = 'https://registry.npmjs.org';
@@ -155,55 +157,82 @@ export const SINGLE_SESSION_STATE_MESSAGES: string[] = [
   'No cap just commits',
 ];
 
-export const MODE_FLAVOR: Record<string, string[]> = {
+export const SINGLE_SESSION_DETAILS: Record<string, string[]> = {
   coding: [
-    'In the zone',
-    'Keyboard on fire',
-    'Code goes brrr',
-    'Edits per second: yes',
-    'Locked in',
-    'Typing arc activated',
-    'Diff machine',
-    'Ship it energy',
-  ],
-  searching: [
-    'Research mode',
-    'Grep-powered',
-    'Down the rabbit hole',
-    'Ctrl+F through reality',
-    'Lore hunting',
-    'Where did that function go',
-    'Deep in the sauce',
-    'Detective arc',
+    'Writing code',
+    'Making some edits',
+    'Hands in the codebase',
+    'Shipping changes',
+    'Refactoring away',
+    'Crafting new code',
+    'Building something',
+    'Diff incoming...',
+    'Rewriting things',
+    'In the editor',
   ],
   terminal: [
-    'DevOps mode',
-    'Shell shocked',
+    'Running commands',
     'Living in the terminal',
-    'sudo make it work',
-    'Command line warrior',
-    'Bash scripting arc',
-    'Trust the process (literally)',
-    'Terminal velocity',
+    'Executing builds',
+    'Shell session active',
+    'Running some scripts',
+    'Commands in flight',
+    'Build in progress',
+    'In the shell',
+  ],
+  searching: [
+    'Searching the codebase',
+    'Exploring the code',
+    'Hunting for something',
+    'Following references',
+    'Tracing the code path',
+    'Digging through files',
+    'On a code treasure hunt',
+    'Pattern matching',
   ],
   thinking: [
-    'Deep in thought',
-    'Brain cycles maxed',
-    'Contemplating the void(0)',
+    'Thinking it through',
+    'Reasoning about this',
+    'Mulling over the options',
     'Processing...',
-    'Loading thoughts...',
-    'Buffering genius',
-    'Internal monologue active',
-    'Reasoning era',
+    'Cooking up a plan',
+    'Analyzing the problem',
+    'Pondering architecture',
+    'Deep in thought',
   ],
-  mixed: [
-    'Full stack chaos',
-    'Jack of all codebases',
-    'Maximum multitasking',
-    'Controlled chaos',
-    'Doing a little bit of everything',
-    'Chaotic neutral workflow',
-    'All over the place (affectionate)',
-    'Renaissance dev energy',
+  reading: [
+    'Reading the code',
+    'Studying the codebase',
+    'Loading context',
+    'Absorbing the source',
+    'Reviewing files',
+    'Reading through things',
+    'Understanding the code',
+    'Learning the patterns',
+  ],
+  idle: [
+    'Waiting for input',
+    'Standing by',
+    'Ready when you are',
+    'On standby',
+    'Between tasks',
+    'Awaiting the next prompt',
+  ],
+  starting: [
+    'Starting up',
+    'Booting up',
+    'Initializing...',
+    'Coming online',
+    'Getting ready',
+    'Warming up',
   ],
 };
+
+export const SINGLE_SESSION_DETAILS_FALLBACK: string[] = [
+  'Working on something',
+  'Doing things',
+  'Busy busy busy',
+  'In progress',
+  'On it',
+  'Working...',
+];

@@ -9,9 +9,12 @@ import {
 import type { Session, ActivityCounts } from '../../src/shared/types.js';
 import { emptyActivityCounts } from '../../src/shared/types.js';
 import {
+  MCP_PRIORITY_WINDOW,
   MESSAGE_ROTATION_INTERVAL,
   MULTI_SESSION_MESSAGES,
   MULTI_SESSION_TOOLTIPS,
+  SINGLE_SESSION_DETAILS,
+  SINGLE_SESSION_DETAILS_FALLBACK,
   SINGLE_SESSION_STATE_MESSAGES,
 } from '../../src/shared/constants.js';
 
@@ -43,16 +46,56 @@ describe('resolvePresence', () => {
   });
 
   describe('single session mode', () => {
-    it('returns detailed card for 1 session', () => {
-      const session = makeSession({ details: 'Refactoring auth' });
-      const activity = resolvePresence([session])!;
+    const now = 1_000_000_000;
+
+    it('picks details from action-specific pool based on smallImageKey', () => {
+      const session = makeSession({ smallImageKey: 'coding' });
+      const activity = resolvePresence([session], now)!;
 
       expect(activity).not.toBeNull();
-      expect(activity.details).toBe('Refactoring auth');
+      expect(SINGLE_SESSION_DETAILS['coding']).toContain(activity.details);
       expect(SINGLE_SESSION_STATE_MESSAGES).toContain(activity.state);
       expect(activity.largeImageKey).toBe('claude-code');
       expect(activity.smallImageKey).toBe('coding');
       expect(activity.startTimestamp).toBe(session.startedAt);
+    });
+
+    it('uses MCP-set details when within priority window', () => {
+      const session = makeSession({
+        details: 'Implementing user authentication',
+        lastMcpUpdateAt: now - 5_000, // 5s ago, within 30s window
+      });
+      const activity = resolvePresence([session], now)!;
+
+      expect(activity.details).toBe('Implementing user authentication');
+    });
+
+    it('ignores MCP details after priority window expires', () => {
+      const session = makeSession({
+        details: 'Old MCP message',
+        smallImageKey: 'coding',
+        lastMcpUpdateAt: now - MCP_PRIORITY_WINDOW - 1, // expired
+      });
+      const activity = resolvePresence([session], now)!;
+
+      expect(activity.details).not.toBe('Old MCP message');
+      expect(SINGLE_SESSION_DETAILS['coding']).toContain(activity.details);
+    });
+
+    it('uses correct pool for each smallImageKey', () => {
+      for (const key of Object.keys(SINGLE_SESSION_DETAILS)) {
+        const session = makeSession({ smallImageKey: key });
+        const activity = resolvePresence([session], now)!;
+
+        expect(SINGLE_SESSION_DETAILS[key]).toContain(activity.details);
+      }
+    });
+
+    it('uses fallback pool for unknown smallImageKey', () => {
+      const session = makeSession({ smallImageKey: 'unknown-key' });
+      const activity = resolvePresence([session], now)!;
+
+      expect(SINGLE_SESSION_DETAILS_FALLBACK).toContain(activity.details);
     });
 
     it('uses session smallImageKey and smallImageText', () => {
@@ -60,21 +103,21 @@ describe('resolvePresence', () => {
         smallImageKey: 'thinking',
         smallImageText: 'Thinking...',
       });
-      const activity = resolvePresence([session])!;
+      const activity = resolvePresence([session], now)!;
 
       expect(activity.smallImageKey).toBe('thinking');
       expect(activity.smallImageText).toBe('Thinking...');
     });
 
-    it('is not affected by the new multi-session logic', () => {
+    it('is not affected by the multi-session logic', () => {
       const session = makeSession({
-        details: 'Working on auth',
+        smallImageKey: 'coding',
         activityCounts: makeCounts({ edits: 50 }),
       });
-      const activity = resolvePresence([session])!;
+      const activity = resolvePresence([session], now)!;
 
       // Single session should NOT show stats line
-      expect(activity.details).toBe('Working on auth');
+      expect(SINGLE_SESSION_DETAILS['coding']).toContain(activity.details);
       expect(SINGLE_SESSION_STATE_MESSAGES).toContain(activity.state);
       expect(activity.smallImageKey).toBe('coding');
     });
@@ -84,7 +127,7 @@ describe('resolvePresence', () => {
         details: 'Editing file.ts',
         projectName: 'super-secret-project',
       });
-      const activity = resolvePresence([session])!;
+      const activity = resolvePresence([session], now)!;
 
       const allFields = [
         activity.details,

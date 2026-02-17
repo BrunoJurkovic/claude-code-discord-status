@@ -2,10 +2,13 @@ import type { Session, DiscordActivity, ActivityCounts } from '../shared/types.j
 import {
   LARGE_IMAGE_KEY,
   LARGE_IMAGE_TEXT,
+  MCP_PRIORITY_WINDOW,
   MESSAGE_ROTATION_INTERVAL,
   MULTI_SESSION_MESSAGES,
   MULTI_SESSION_MESSAGES_OVERFLOW,
   MULTI_SESSION_TOOLTIPS,
+  SINGLE_SESSION_DETAILS,
+  SINGLE_SESSION_DETAILS_FALLBACK,
   SINGLE_SESSION_STATE_MESSAGES,
 } from '../shared/constants.js';
 
@@ -19,15 +22,24 @@ export function resolvePresence(
   if (sessions.length === 0) return null;
 
   if (sessions.length === 1) {
-    return buildSingleSessionActivity(sessions[0]);
+    return buildSingleSessionActivity(sessions[0], now);
   }
 
   return buildMultiSessionActivity(sessions, now);
 }
 
-function buildSingleSessionActivity(session: Session): DiscordActivity {
-  const details = sanitizeField(session.details) ?? 'Using Claude Code';
-  const state = stablePick(SINGLE_SESSION_STATE_MESSAGES, session.startedAt, Date.now());
+function buildSingleSessionActivity(session: Session, now: number): DiscordActivity {
+  const isMcpActive = now - session.lastMcpUpdateAt < MCP_PRIORITY_WINDOW;
+
+  let details: string;
+  if (isMcpActive && session.details) {
+    details = sanitizeField(session.details) ?? 'Using Claude Code';
+  } else {
+    const pool = SINGLE_SESSION_DETAILS[session.smallImageKey] ?? SINGLE_SESSION_DETAILS_FALLBACK;
+    details = stablePick(pool, session.startedAt, now);
+  }
+
+  const state = stablePick(SINGLE_SESSION_STATE_MESSAGES, session.startedAt + 1, now);
 
   return {
     details,
