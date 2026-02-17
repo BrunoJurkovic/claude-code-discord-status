@@ -39,7 +39,8 @@
   },
   "files": [
     "dist/",
-    "src/hooks/"
+    "src/hooks/",
+    "CHANGELOG.md"
   ],
   "dependencies": {
     "@clack/prompts": "^1.0.1",

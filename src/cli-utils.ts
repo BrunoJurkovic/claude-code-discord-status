@@ -1,6 +1,6 @@
 const green = (s: string) => `\x1b[32m${s}\x1b[39m`;
 const yellow = (s: string) => `\x1b[33m${s}\x1b[39m`;
-const dim = (s: string) => `\x1b[2m${s}\x1b[22m`;
+export const dim = (s: string) => `\x1b[2m${s}\x1b[22m`;
 
 export function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);

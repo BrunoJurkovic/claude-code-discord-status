@@ -13,13 +13,18 @@ import {
   PACKAGE_NAME,
 } from './shared/constants.js';
 import { loadConfig } from './shared/config.js';
-import { formatDuration, statusBadge, connectionBadge } from './cli-utils.js';
+import { formatDuration, statusBadge, connectionBadge, dim } from './cli-utils.js';
 import { VERSION } from './shared/version.js';
 import {
   readCachedUpdate,
   isUpdateCheckDisabled,
   compareVersions,
 } from './shared/update-checker.js';
+import {
+  checkChangelogState,
+  formatChangelogSection,
+  writePendingChangelog,
+} from './shared/changelog.js';
 import type { HealthResponse } from './shared/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,7 +63,36 @@ async function checkHealth(): Promise<HealthResponse | null> {
   return null;
 }
 
-function displayUpdateNotification(): void {
+function displayChangelog(): boolean {
+  const state = checkChangelogState(VERSION);
+  if (!state.shouldShow) return false;
+
+  const { sections } = state;
+  const first = sections[0];
+  const last = sections[sections.length - 1];
+  const title =
+    sections.length === 1
+      ? `What's new in v${last.version}`
+      : `What's new (v${first.version} – v${last.version})`;
+
+  const parts: string[] = [];
+  for (let i = 0; i < sections.length; i++) {
+    if (i > 0) parts.push('─'.repeat(40));
+    const s = sections[i];
+    parts.push(`v${s.version} ${dim(`(${s.date})`)}`);
+    parts.push(formatChangelogSection(s));
+  }
+
+  p.note(parts.join('\n\n'), title);
+  return true;
+}
+
+function displayPostCommandNotifications(): void {
+  const shownChangelog = displayChangelog();
+
+  // Don't show "update available" if we just showed the changelog
+  if (shownChangelog) return;
+
   const config = loadConfig();
   if (isUpdateCheckDisabled(config.updateCheck)) return;
 
@@ -100,6 +134,7 @@ async function update(): Promise<void> {
   try {
     execSync(`npm install -g ${PACKAGE_NAME}@latest`, { stdio: 'pipe' });
     s.stop('Package updated');
+    writePendingChangelog(VERSION);
   } catch (err) {
     s.stop('Update failed');
     p.log.error(`npm install failed: ${(err as Error).message}`);
@@ -159,7 +194,7 @@ async function startDaemon(background: boolean): Promise<void> {
     p.log.success(`Daemon started in background (PID ${child.pid})`);
     p.log.info(`Log file: ${LOG_FILE}`);
     p.outro();
-    displayUpdateNotification();
+    displayPostCommandNotifications();
   } else {
     p.log.info('Starting daemon in foreground...');
     p.outro();
@@ -198,7 +233,7 @@ async function stopDaemon(): Promise<void> {
   }
 
   p.outro();
-  displayUpdateNotification();
+  displayPostCommandNotifications();
 }
 
 async function showStatus(): Promise<void> {
@@ -256,7 +291,7 @@ async function showStatus(): Promise<void> {
   }
 
   p.outro();
-  displayUpdateNotification();
+  displayPostCommandNotifications();
 }
 
 async function setup(): Promise<void> {
@@ -607,7 +642,7 @@ function showHelp(): void {
   );
 
   p.outro('Discord Rich Presence for Claude Code');
-  displayUpdateNotification();
+  displayPostCommandNotifications();
 }
 
 // Main
