@@ -21,15 +21,6 @@ if [ -z "$SESSION_ID" ] || [ -z "$HOOK_EVENT" ]; then
   exit 0
 fi
 
-# Helper: extract filename from tool_input, basename only
-extract_filename() {
-  local filename
-  filename=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_input.path // .tool_input.command // empty' 2>/dev/null) || true
-  if [ -n "$filename" ]; then
-    basename "$filename"
-  fi
-}
-
 # Helper: POST JSON to daemon
 post_json() {
   local endpoint="$1"
@@ -68,15 +59,9 @@ case "$HOOK_EVENT" in
     DETAILS=""
     ICON="coding"
     ICON_TEXT="Writing code"
-    FILENAME=$(extract_filename)
-
     case "$TOOL_NAME" in
       Write|Edit)
-        if [ -n "$FILENAME" ]; then
-          DETAILS="Editing ${FILENAME}"
-        else
-          DETAILS="Editing a file"
-        fi
+        DETAILS="Editing a file"
         ICON="coding"
         ICON_TEXT="Writing code"
         ;;
@@ -86,11 +71,7 @@ case "$HOOK_EVENT" in
         ICON_TEXT="Running a command"
         ;;
       Read)
-        if [ -n "$FILENAME" ]; then
-          DETAILS="Reading ${FILENAME}"
-        else
-          DETAILS="Reading a file"
-        fi
+        DETAILS="Reading a file"
         ICON="reading"
         ICON_TEXT="Reading files"
         ;;
