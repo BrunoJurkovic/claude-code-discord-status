@@ -142,4 +142,5 @@ Config file: `~/.claude-discord-status/config.json`
 
 - Branch: `main`
 - Commit format: short, descriptive messages
+- **Never add Co-Authored-By or any Claude/AI credit to commits**
 - CI runs lint, format check, typecheck, test, build on Node 18/20/22
