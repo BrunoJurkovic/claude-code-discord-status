@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0](https://github.com/BrunoJurkovic/claude-code-discord-status/compare/v1.1.0...v1.2.0) (2026-03-03)
+
+
+### Features
+
+* add configurable message presets with 5 styles ([fdb90af](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/fdb90af14367d263bf0c044550194e6a34869e0a))
+* remove MCP server component to prevent project detail leaks ([51a47b4](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/51a47b4d79979f478e707743e0730dfefb274132))
+
+
+### Bug Fixes
+
+* clean up legacy MCP registration on auto-update ([5a50c87](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/5a50c873563029f3b071ce152feec82f706817bc))
+* resolve restart race condition and PID file race ([9e4af97](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/9e4af973d0c06109efecd34c78cbf63f3df4f49d))
+
 ## [1.1.0](https://github.com/BrunoJurkovic/claude-code-discord-status/compare/v1.0.1...v1.1.0) (2026-02-17)
 
 
