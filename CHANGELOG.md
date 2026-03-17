@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0](https://github.com/BrunoJurkovic/claude-code-discord-status/compare/v1.2.0...v1.3.0) (2026-03-17)
+
+
+### Features
+
+* show real-time tool icon in multi-session mode ([e4a2020](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/e4a2020caec915f834187da2d9956a854eff70fc))
+
+
+### Bug Fixes
+
+* auto-restart daemon from hook when it dies ([d9e42e2](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/d9e42e208afd74c78272d14515f4e582da98914a))
+* copy hook to stable path and recommend global install ([3642926](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/3642926b5f8b269589fe7fc2fd5281751668bfb9))
+
 ## [1.2.0](https://github.com/BrunoJurkovic/claude-code-discord-status/compare/v1.1.0...v1.2.0) (2026-03-03)
 
 
