@@ -9,6 +9,7 @@ import {
 } from 'node:fs';
 import { spawn, execSync } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import * as p from '@clack/prompts';
 import {
@@ -205,8 +206,10 @@ async function update(): Promise<void> {
     process.exit(1);
   }
 
-  // Re-copy hook script to stable location
-  copyHookScript();
+  // Re-copy hook script to stable location (Unix only; Windows uses CLI subcommand)
+  if (process.platform !== 'win32') {
+    copyHookScript();
+  }
 
   // Restart daemon
   const daemonPath = resolve(__dirname, 'daemon', 'index.js');
@@ -218,6 +221,7 @@ async function update(): Promise<void> {
       detached: true,
       stdio: ['ignore', logFd, logFd],
       env: { ...process.env },
+      windowsHide: true,
     });
     child.unref();
     persistDaemonPath();
@@ -255,6 +259,7 @@ async function startDaemon(background: boolean): Promise<void> {
       detached: true,
       stdio: ['ignore', logFd, logFd],
       env: { ...process.env },
+      windowsHide: true,
     });
     child.unref();
 
@@ -378,19 +383,22 @@ async function setup(): Promise<void> {
     process.exit(1);
   }
 
-  let jqVersion = '';
-  try {
-    jqVersion = execSync('jq --version', { stdio: 'pipe' }).toString().trim();
-  } catch {
-    p.log.error('jq is required but not found.');
-    p.log.info('  macOS: brew install jq');
-    p.log.info('  Ubuntu: sudo apt install jq');
-    p.outro();
-    process.exit(1);
-  }
-
   p.log.success(`Node.js ${nodeVersion}`);
-  p.log.success(`jq ${jqVersion}`);
+
+  // jq is only needed on Unix (bash hook uses it); Windows hook is pure Node.js
+  if (process.platform !== 'win32') {
+    let jqVersion = '';
+    try {
+      jqVersion = execSync('jq --version', { stdio: 'pipe' }).toString().trim();
+    } catch {
+      p.log.error('jq is required but not found.');
+      p.log.info('  macOS: brew install jq');
+      p.log.info('  Ubuntu: sudo apt install jq');
+      p.outro();
+      process.exit(1);
+    }
+    p.log.success(`jq ${jqVersion}`);
+  }
 
   // --- Configuration ---
   let resolvedClientId = DEFAULT_DISCORD_CLIENT_ID;
@@ -481,14 +489,15 @@ async function setup(): Promise<void> {
 
   // --- Installation ---
 
-  // Copy hook script to stable location and register hooks
-  const hookCommand = copyHookScript();
+  // On Windows, use the Node.js hook (CLI subcommand); on Unix, use the bash script.
+  // CLAUDE_PID=$PPID passes Claude Code's real PID (bash's parent) to the Node.js hook,
+  // so the daemon's PID liveness check sees the correct long-lived process.
+  const hookCommand =
+    process.platform === 'win32'
+      ? 'CLAUDE_PID=$PPID claude-discord-status hook'
+      : copyHookScript();
 
-  const claudeSettingsPath = join(
-    process.env.HOME ?? process.env.USERPROFILE ?? '~',
-    '.claude',
-    'settings.json',
-  );
+  const claudeSettingsPath = join(homedir(), '.claude', 'settings.json');
 
   const hookConfig = createHookConfig(hookCommand);
 
@@ -501,11 +510,11 @@ async function setup(): Promise<void> {
     const existingHooks = (existingSettings.hooks ?? {}) as Record<string, unknown[]>;
     const newHooks = hookConfig.hooks as Record<string, unknown[]>;
 
-    // Remove any old claude-hook.sh entries (from previous installs/npx paths)
+    // Remove any old hook entries (from previous installs/npx paths)
     for (const event of Object.keys(existingHooks)) {
       existingHooks[event] = existingHooks[event].filter((entry: unknown) => {
         const str = JSON.stringify(entry);
-        return !str.includes('claude-hook.sh');
+        return !str.includes('claude-hook.sh') && !str.includes('claude-discord-status hook');
       });
       if (existingHooks[event].length === 0) {
         delete existingHooks[event];
@@ -548,6 +557,7 @@ async function setup(): Promise<void> {
       detached: true,
       stdio: ['ignore', logFd, logFd],
       env: { ...process.env },
+      windowsHide: true,
     });
     child.unref();
     p.log.success(`Daemon started (PID ${child.pid})`);
@@ -567,7 +577,8 @@ async function setup(): Promise<void> {
     }
   } else {
     s.stop('Could not reach daemon — check logs');
-    p.log.info(`  cat ${LOG_FILE}`);
+    const viewCmd = process.platform === 'win32' ? `type "${LOG_FILE}"` : `cat ${LOG_FILE}`;
+    p.log.info(`  ${viewCmd}`);
   }
 
   p.note(
@@ -646,11 +657,7 @@ async function uninstall(): Promise<void> {
   }
 
   // Remove hooks from settings
-  const claudeSettingsPath = join(
-    process.env.HOME ?? process.env.USERPROFILE ?? '~',
-    '.claude',
-    'settings.json',
-  );
+  const claudeSettingsPath = join(homedir(), '.claude', 'settings.json');
 
   try {
     if (existsSync(claudeSettingsPath)) {
@@ -659,7 +666,7 @@ async function uninstall(): Promise<void> {
         for (const event of Object.keys(settings.hooks)) {
           settings.hooks[event] = (settings.hooks[event] as unknown[]).filter((entry: unknown) => {
             const str = JSON.stringify(entry);
-            return !str.includes('claude-hook.sh');
+            return !str.includes('claude-hook.sh') && !str.includes('claude-discord-status hook');
           });
           if (settings.hooks[event].length === 0) {
             delete settings.hooks[event];
@@ -766,6 +773,7 @@ async function changePreset(presetArg?: string): Promise<void> {
         detached: true,
         stdio: ['ignore', logFd, logFd],
         env: { ...process.env },
+        windowsHide: true,
       });
       child.unref();
       p.log.success(`Daemon restarted (PID ${child.pid})`);
@@ -818,6 +826,11 @@ switch (command) {
   case 'update':
     await update();
     break;
+  case 'hook': {
+    const { handleHook } = await import('./hook.js');
+    await handleHook();
+    break;
+  }
   case '--version':
   case '-v':
     console.log(VERSION);
