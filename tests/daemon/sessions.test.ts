@@ -114,13 +114,19 @@ describe('SessionRegistry', () => {
   });
 
   describe('checkStaleSessions', () => {
-    it('removes sessions with dead PIDs', () => {
+    it('removes sessions with dead PIDs on Unix, marks idle on Windows', () => {
       // Use a PID that definitely doesn't exist
       registry.startSession('s1', { pid: 999999, projectPath: '/tmp/project' });
 
       registry.checkStaleSessions(600_000, 1_800_000);
 
-      expect(registry.getSessionCount()).toBe(0);
+      if (process.platform === 'win32') {
+        // On Windows, dead PID marks session idle instead of removing
+        expect(registry.getSessionCount()).toBe(1);
+        expect(registry.getSession('s1')!.status).toBe('idle');
+      } else {
+        expect(registry.getSessionCount()).toBe(0);
+      }
     });
 
     it('marks sessions idle after idleTimeout', () => {
