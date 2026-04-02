@@ -493,9 +493,7 @@ async function setup(): Promise<void> {
   // CLAUDE_PID=$PPID passes Claude Code's real PID (bash's parent) to the Node.js hook,
   // so the daemon's PID liveness check sees the correct long-lived process.
   const hookCommand =
-    process.platform === 'win32'
-      ? 'CLAUDE_PID=$PPID claude-discord-status hook'
-      : copyHookScript();
+    process.platform === 'win32' ? 'CLAUDE_PID=$PPID claude-discord-status hook' : copyHookScript();
 
   const claudeSettingsPath = join(homedir(), '.claude', 'settings.json');
 
