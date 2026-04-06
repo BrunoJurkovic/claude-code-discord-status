@@ -394,9 +394,38 @@ async function setup(): Promise<void> {
   p.log.success(`jq ${jqVersion}`);
 
   // --- Configuration ---
-  let resolvedClientId = DEFAULT_DISCORD_CLIENT_ID;
   const existingConfig = existsSync(CONFIG_FILE);
 
+  // Preset selection first
+  let existingPreset: PresetName = DEFAULT_PRESET;
+  if (existingConfig) {
+    try {
+      const current = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'));
+      if (current.preset && isValidPreset(current.preset)) {
+        existingPreset = current.preset;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const presetChoice = await p.select({
+    message: 'Choose a message style',
+    options: PRESET_NAMES.map((name) => ({
+      value: name,
+      label: PRESETS[name].label,
+      hint: PRESETS[name].description,
+    })),
+    initialValue: existingPreset,
+  });
+
+  if (p.isCancel(presetChoice)) {
+    p.cancel('Setup cancelled.');
+    process.exit(0);
+  }
+
+  // Custom Discord app — last, defaults to No
+  let resolvedClientId = DEFAULT_DISCORD_CLIENT_ID;
   if (existingConfig) {
     try {
       const current = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'));
@@ -408,8 +437,12 @@ async function setup(): Promise<void> {
     }
   }
 
+  p.log.step(
+    'The default works out of the box \u2014 only change this if you\'ve created your own Discord app',
+  );
+
   const useCustomApp = await p.confirm({
-    message: 'Use a custom Discord app? (default shows as "Claude Code")',
+    message: 'Use a custom Discord Application ID?',
     initialValue: false,
   });
 
@@ -437,37 +470,9 @@ async function setup(): Promise<void> {
   }
 
   if (resolvedClientId === DEFAULT_DISCORD_CLIENT_ID) {
-    p.log.info('Using default Client ID');
+    p.log.info('Using default Client ID (recommended)');
   } else {
     p.log.info(`Using custom Client ID: ${resolvedClientId}`);
-  }
-
-  // Read existing preset if reconfiguring
-  let existingPreset: PresetName = DEFAULT_PRESET;
-  if (existingConfig) {
-    try {
-      const current = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'));
-      if (current.preset && isValidPreset(current.preset)) {
-        existingPreset = current.preset;
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  const presetChoice = await p.select({
-    message: 'Choose a message style',
-    options: PRESET_NAMES.map((name) => ({
-      value: name,
-      label: PRESETS[name].label,
-      hint: PRESETS[name].description,
-    })),
-    initialValue: existingPreset,
-  });
-
-  if (p.isCancel(presetChoice)) {
-    p.cancel('Setup cancelled.');
-    process.exit(0);
   }
 
   mkdirSync(CONFIG_DIR, { recursive: true });
