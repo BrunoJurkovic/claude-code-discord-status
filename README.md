@@ -49,14 +49,14 @@
 ### Install & Setup
 
 ```bash
-npm install -g claude-presence
+npm install -g claude-code-discord-status
 claude-presence setup
 ```
 
 Or try it without installing globally:
 
 ```bash
-npx claude-presence setup
+npx claude-code-discord-status setup
 ```
 
 > **Tip:** The global install (`npm install -g`) is recommended — it puts the CLI on your PATH and keeps files in a stable location. The `npx` approach works for a quick try but relies on npm's cache directory.
@@ -73,11 +73,11 @@ The daemon auto-restarts when needed — if it gets killed (system restart, slee
 ## Upgrading from v1.x
 
 ```bash
-npm install -g claude-presence
+npm install -g claude-code-discord-status@latest
 claude-presence doctor --fix
 ```
 
-Migration is automatic — your config, hooks, and settings are moved to the new `~/.claude-presence/` directory on first run. The old `claude-code-discord-status` package can be uninstalled after upgrading.
+Migration is automatic — your config, hooks, and settings are moved to the new `~/.claude-presence/` directory on first run.
 
 ## How It Works
 
@@ -106,7 +106,7 @@ claude-presence update           # Update to latest version
 claude-presence uninstall        # Remove everything
 ```
 
-> All commands also work with `npx claude-presence <command>`.
+> All commands also work with `npx claude-code-discord-status <command>`.
 
 ## Configuration
 
