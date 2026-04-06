@@ -94,8 +94,9 @@ export function updateHookPaths(): void {
  */
 export function copyHookToStablePath(): void {
   try {
+    // __dirname is dist/ when bundled by tsup (not src/shared/)
     const candidates = [
-      resolve(__dirname, '..', '..', 'src', 'hooks', 'claude-hook.sh'),
+      resolve(__dirname, '..', 'src', 'hooks', 'claude-hook.sh'),
       resolve(__dirname, '..', 'hooks', 'claude-hook.sh'),
     ];
     const source = candidates.find((p) => existsSync(p));
@@ -117,7 +118,8 @@ export function updateDaemonPathInConfig(): void {
     if (!existsSync(CONFIG_FILE)) return;
 
     const config = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'));
-    const daemonPath = resolve(__dirname, '..', 'daemon', 'index.js');
+    // __dirname is dist/ when bundled by tsup (not src/shared/)
+    const daemonPath = resolve(__dirname, 'daemon', 'index.js');
 
     if (existsSync(daemonPath) && config.daemonPath !== daemonPath) {
       config.daemonPath = daemonPath;
