@@ -1,11 +1,4 @@
-import {
-  existsSync,
-  readFileSync,
-  statSync,
-  unlinkSync,
-  chmodSync,
-  rmSync,
-} from 'node:fs';
+import { existsSync, readFileSync, statSync, unlinkSync, chmodSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 import { homedir } from 'node:os';

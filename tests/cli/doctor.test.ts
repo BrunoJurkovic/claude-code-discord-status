@@ -150,9 +150,7 @@ describe('doctor checks', () => {
           hooks: {
             SessionStart: [
               {
-                hooks: [
-                  { command: '/opt/homebrew/lib/node_modules/something/claude-hook.sh' },
-                ],
+                hooks: [{ command: '/opt/homebrew/lib/node_modules/something/claude-hook.sh' }],
               },
             ],
           },

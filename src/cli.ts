@@ -440,7 +440,7 @@ async function setup(): Promise<void> {
   }
 
   p.log.step(
-    'The default works out of the box \u2014 only change this if you\'ve created your own Discord app',
+    "The default works out of the box \u2014 only change this if you've created your own Discord app",
   );
 
   const useCustomApp = await p.confirm({

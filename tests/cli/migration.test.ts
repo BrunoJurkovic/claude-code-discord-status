@@ -91,9 +91,9 @@ describe('updateHookPaths', () => {
     const { updateHookPaths } = await import('../../src/shared/migration.js');
     updateHookPaths();
 
-    const writeCall = vi.mocked(writeFileSync).mock.calls.find(
-      (call) => typeof call[0] === 'string' && call[0].includes('settings.json'),
-    );
+    const writeCall = vi
+      .mocked(writeFileSync)
+      .mock.calls.find((call) => typeof call[0] === 'string' && call[0].includes('settings.json'));
     expect(writeCall).toBeDefined();
     const written = JSON.parse(writeCall![1] as string);
     expect(written.hooks.SessionStart[0].hooks[0].command).toContain('.claude-presence');
