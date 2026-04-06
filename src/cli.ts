@@ -20,6 +20,7 @@ import {
   DEFAULT_PORT,
   DEFAULT_DISCORD_CLIENT_ID,
   PACKAGE_NAME,
+  LEGACY_CONFIG_DIR,
 } from './shared/constants.js';
 import { loadConfig } from './shared/config.js';
 import { migrateFromLegacy } from './shared/migration.js';
@@ -683,11 +684,19 @@ async function uninstall(): Promise<void> {
     p.log.warn('Could not clean up hooks');
   }
 
-  // Remove config
+  // Remove config — both new and legacy dirs
   try {
     const { rmSync } = await import('node:fs');
-    rmSync(CONFIG_DIR, { recursive: true, force: true });
-    p.log.success('Config removed');
+    let removed = false;
+    if (existsSync(CONFIG_DIR)) {
+      rmSync(CONFIG_DIR, { recursive: true, force: true });
+      removed = true;
+    }
+    if (existsSync(LEGACY_CONFIG_DIR)) {
+      rmSync(LEGACY_CONFIG_DIR, { recursive: true, force: true });
+      removed = true;
+    }
+    p.log.success(removed ? 'Config removed' : 'Config already removed');
   } catch {
     p.log.warn('Could not remove config directory');
   }
