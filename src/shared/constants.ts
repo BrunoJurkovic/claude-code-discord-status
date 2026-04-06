@@ -16,7 +16,7 @@ export const PENDING_CHANGELOG_FILE = join(CONFIG_DIR, 'pending-changelog');
 
 export const UPDATE_CHECK_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
 export const NPM_REGISTRY_URL = 'https://registry.npmjs.org';
-export const PACKAGE_NAME = 'claude-presence';
+export const PACKAGE_NAME = 'claude-code-discord-status';
 
 // Legacy paths for migration
 export const LEGACY_CONFIG_DIR = join(homedir(), '.claude-discord-status');
