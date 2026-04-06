@@ -162,13 +162,13 @@ function displayPostCommandNotifications(): void {
   if (compareVersions(VERSION, cached.latestVersion) >= 0) return;
 
   p.note(
-    `Update available: v${VERSION} → v${cached.latestVersion}\nRun \`claude-discord-status update\` to update`,
+    `Update available: v${VERSION} → v${cached.latestVersion}\nRun \`claude-presence update\` to update`,
     'Update',
   );
 }
 
 async function update(): Promise<void> {
-  p.intro(`claude-discord-status v${VERSION}`);
+  p.intro(`claude-presence v${VERSION}`);
 
   const s = p.spinner();
 
@@ -228,7 +228,7 @@ async function update(): Promise<void> {
 }
 
 async function startDaemon(background: boolean): Promise<void> {
-  p.intro(`claude-discord-status v${VERSION}`);
+  p.intro(`claude-presence v${VERSION}`);
 
   const existing = getDaemonPid();
   if (existing) {
@@ -278,7 +278,7 @@ async function startDaemon(background: boolean): Promise<void> {
 }
 
 async function stopDaemon(): Promise<void> {
-  p.intro(`claude-discord-status v${VERSION}`);
+  p.intro(`claude-presence v${VERSION}`);
 
   const pid = getDaemonPid();
   if (!pid) {
@@ -305,7 +305,7 @@ async function stopDaemon(): Promise<void> {
 }
 
 async function showStatus(): Promise<void> {
-  p.intro(`claude-discord-status v${VERSION}`);
+  p.intro(`claude-presence v${VERSION}`);
 
   const pid = getDaemonPid();
   const health = await checkHealth();
@@ -367,7 +367,7 @@ async function showStatus(): Promise<void> {
 }
 
 async function setup(): Promise<void> {
-  p.intro('claude-discord-status');
+  p.intro('claude-presence');
 
   // --- Prerequisites ---
   const nodeVersion = process.versions.node;
@@ -615,7 +615,7 @@ function createHookConfig(hookCommand: string) {
 }
 
 async function uninstall(): Promise<void> {
-  p.intro('claude-discord-status');
+  p.intro('claude-presence');
 
   const shouldContinue = await p.confirm({
     message: 'This will remove all hooks and config. Continue?',
@@ -689,7 +689,7 @@ async function uninstall(): Promise<void> {
 }
 
 async function changePreset(presetArg?: string): Promise<void> {
-  p.intro(`claude-discord-status v${VERSION}`);
+  p.intro(`claude-presence v${VERSION}`);
 
   let selectedPreset: PresetName;
 
@@ -776,7 +776,7 @@ async function changePreset(presetArg?: string): Promise<void> {
 }
 
 function showHelp(): void {
-  p.intro(`claude-discord-status v${VERSION}`);
+  p.intro(`claude-presence v${VERSION}`);
 
   p.note(
     [
