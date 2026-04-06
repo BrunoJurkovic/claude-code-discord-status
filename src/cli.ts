@@ -23,6 +23,7 @@ import {
 } from './shared/constants.js';
 import { loadConfig } from './shared/config.js';
 import { migrateFromLegacy } from './shared/migration.js';
+import { runAllChecks } from './doctor.js';
 import { PRESETS, PRESET_NAMES, DEFAULT_PRESET, isValidPreset } from './presets/index.js';
 import type { PresetName } from './presets/types.js';
 import { formatDuration, statusBadge, connectionBadge, dim } from './cli-utils.js';
@@ -781,6 +782,77 @@ async function changePreset(presetArg?: string): Promise<void> {
   p.outro();
 }
 
+async function doctor(): Promise<void> {
+  p.intro(`claude-presence v${VERSION}`);
+
+  const config = loadConfig();
+  const autoFix = args.includes('--fix');
+
+  const s = p.spinner();
+  s.start('Checking health...');
+  const results = await runAllChecks(config.daemonPort);
+  s.stop('Health check complete');
+
+  for (const r of results) {
+    if (r.status === 'pass') {
+      p.log.success(r.message);
+    } else if (r.status === 'warn') {
+      p.log.warn(`${r.label} \u2014 ${r.message}`);
+    } else {
+      p.log.error(`${r.label} \u2014 ${r.message}`);
+    }
+  }
+
+  const fixable = results.filter((r) => r.status !== 'pass' && r.fix);
+  if (fixable.length === 0) {
+    p.outro('All checks passed.');
+    return;
+  }
+
+  let shouldFix = autoFix;
+  if (!autoFix) {
+    const confirm = await p.confirm({
+      message: `Found ${fixable.length} fixable issue(s). Fix them?`,
+      initialValue: true,
+    });
+    if (p.isCancel(confirm)) {
+      p.cancel('Cancelled.');
+      process.exit(0);
+    }
+    shouldFix = confirm;
+  }
+
+  if (shouldFix) {
+    for (const r of fixable) {
+      await r.fix!();
+      p.log.success(`Fixed: ${r.label}`);
+    }
+
+    // Try to start daemon if still not reachable
+    try {
+      const res = await fetch(`http://127.0.0.1:${config.daemonPort}/health`);
+      if (!res.ok) throw new Error();
+    } catch {
+      const daemonPath = resolve(__dirname, 'daemon', 'index.js');
+      if (existsSync(daemonPath)) {
+        mkdirSync(CONFIG_DIR, { recursive: true });
+        const { openSync } = await import('node:fs');
+        const logFd = openSync(LOG_FILE, 'a');
+        const child = spawn('node', [daemonPath], {
+          detached: true,
+          stdio: ['ignore', logFd, logFd],
+          env: { ...process.env },
+        });
+        child.unref();
+        persistDaemonPath();
+        p.log.success(`Daemon started (PID ${child.pid})`);
+      }
+    }
+  }
+
+  p.outro(shouldFix ? 'Issues fixed.' : 'Run with --fix to auto-repair.');
+}
+
 function showHelp(): void {
   p.intro(`claude-presence v${VERSION}`);
 
@@ -791,6 +863,7 @@ function showHelp(): void {
       'stop             Stop the daemon',
       'status           Show daemon status and sessions',
       'preset [name]    Change message style',
+      'doctor [--fix]   Diagnose and fix issues',
       'update           Update to the latest version',
       'uninstall        Remove all hooks and config',
     ].join('\n'),
@@ -823,6 +896,9 @@ switch (command) {
     break;
   case 'preset':
     await changePreset(args[1]);
+    break;
+  case 'doctor':
+    await doctor();
     break;
   case 'uninstall':
     await uninstall();
