@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="./assets/hero-banner.svg" alt="claude-code-discord-status" width="900" />
+  <img src="./assets/hero-banner.svg" alt="claude-presence" width="900" />
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/claude-code-discord-status"><img src="https://img.shields.io/npm/v/claude-code-discord-status?color=5865f2&style=flat-square" alt="npm version" /></a>
-  <a href="https://github.com/BrunoJurkovic/claude-code-discord-status/actions"><img src="https://img.shields.io/github/actions/workflow/status/BrunoJurkovic/claude-code-discord-status/ci.yml?style=flat-square" alt="CI" /></a>
-  <a href="https://github.com/BrunoJurkovic/claude-code-discord-status/blob/main/LICENSE"><img src="https://img.shields.io/github/license/BrunoJurkovic/claude-code-discord-status?style=flat-square" alt="License" /></a>
-  <img src="https://img.shields.io/node/v/claude-code-discord-status?style=flat-square" alt="Node version" />
+  <a href="https://www.npmjs.com/package/claude-presence"><img src="https://img.shields.io/npm/v/claude-presence?color=5865f2&style=flat-square" alt="npm version" /></a>
+  <a href="https://github.com/BrunoJurkovic/claude-presence/actions"><img src="https://img.shields.io/github/actions/workflow/status/BrunoJurkovic/claude-presence/ci.yml?style=flat-square" alt="CI" /></a>
+  <a href="https://github.com/BrunoJurkovic/claude-presence/blob/main/LICENSE"><img src="https://img.shields.io/github/license/BrunoJurkovic/claude-presence?style=flat-square" alt="License" /></a>
+  <img src="https://img.shields.io/node/v/claude-presence?style=flat-square" alt="Node version" />
 </p>
 
 <p align="center">
@@ -49,26 +49,35 @@
 ### Install & Setup
 
 ```bash
-npm install -g claude-code-discord-status
-claude-discord-status setup
+npm install -g claude-presence
+claude-presence setup
 ```
 
 Or try it without installing globally:
 
 ```bash
-npx claude-code-discord-status setup
+npx claude-presence setup
 ```
 
 > **Tip:** The global install (`npm install -g`) is recommended — it puts the CLI on your PATH and keeps files in a stable location. The `npx` approach works for a quick try but relies on npm's cache directory.
 
 Setup will:
 
-1. Create a config at `~/.claude-discord-status/config.json`
-2. Copy the hook script to `~/.claude-discord-status/` for persistence
+1. Create a config at `~/.claude-presence/config.json`
+2. Copy the hook script to `~/.claude-presence/` for persistence
 3. Add lifecycle hooks to `~/.claude/settings.json`
 4. Start the daemon in the background
 
 The daemon auto-restarts when needed — if it gets killed (system restart, sleep/wake), the next Claude Code session brings it back automatically.
+
+## Upgrading from v1.x
+
+```bash
+npm install -g claude-presence
+claude-presence doctor --fix
+```
+
+Migration is automatic — your config, hooks, and settings are moved to the new `~/.claude-presence/` directory on first run. The old `claude-code-discord-status` package can be uninstalled after upgrading.
 
 ## How It Works
 
@@ -86,26 +95,28 @@ Two components work together:
 ## CLI
 
 ```bash
-claude-discord-status setup            # Interactive setup wizard
-claude-discord-status status           # Check daemon status and active sessions
-claude-discord-status start -d         # Start daemon in background
-claude-discord-status stop             # Stop the daemon
-claude-discord-status preset [name]    # Change message style
-claude-discord-status update           # Update to latest version
-claude-discord-status uninstall        # Remove everything
+claude-presence setup            # Interactive setup wizard
+claude-presence status           # Check daemon status and active sessions
+claude-presence start -d         # Start daemon in background
+claude-presence stop             # Stop the daemon
+claude-presence preset [name]    # Change message style
+claude-presence doctor            # Diagnose and fix issues
+claude-presence doctor --fix     # Auto-fix all issues
+claude-presence update           # Update to latest version
+claude-presence uninstall        # Remove everything
 ```
 
-> All commands also work with `npx claude-code-discord-status <command>`.
+> All commands also work with `npx claude-presence <command>`.
 
 ## Configuration
 
-Config file: `~/.claude-discord-status/config.json`
+Config file: `~/.claude-presence/config.json`
 
 | Key | Env Override | Default | Description |
 | --- | --- | --- | --- |
-| `discordClientId` | `CLAUDE_DISCORD_CLIENT_ID` | `1472915568930848829` | Discord Application Client ID |
-| `daemonPort` | `CLAUDE_DISCORD_PORT` | `19452` | Local HTTP server port |
-| `preset` | `CLAUDE_DISCORD_PRESET` | `minimal` | Message style preset |
+| `discordClientId` | `CLAUDE_PRESENCE_CLIENT_ID` | `1472915568930848829` | Discord Application Client ID |
+| `daemonPort` | `CLAUDE_PRESENCE_PORT` | `19452` | Local HTTP server port |
+| `preset` | `CLAUDE_PRESENCE_PRESET` | `minimal` | Message style preset |
 
 The default client ID works out of the box — it's a public app identifier, not a secret.
 
@@ -116,8 +127,8 @@ The default client ID works out of the box — it's a public app identifier, not
 Choose how your Discord status sounds. Set during setup, or change anytime:
 
 ```bash
-claude-discord-status preset            # Interactive selection
-claude-discord-status preset dev-humor   # Set directly
+claude-presence preset            # Interactive selection
+claude-presence preset dev-humor   # Set directly
 ```
 
 | Preset | Style | Example |
@@ -131,7 +142,7 @@ claude-discord-status preset dev-humor   # Set directly
 Override via environment variable:
 
 ```bash
-export CLAUDE_DISCORD_PRESET=professional
+export CLAUDE_PRESENCE_PRESET=professional
 ```
 
 ## Multi-Session Fun
@@ -150,8 +161,8 @@ Plus aggregate stats like `23 edits · 8 cmds · 2h 15m deep` and rotating hover
 ## Development
 
 ```bash
-git clone https://github.com/BrunoJurkovic/claude-code-discord-status.git
-cd claude-code-discord-status
+git clone https://github.com/BrunoJurkovic/claude-presence.git
+cd claude-presence
 npm install
 npm run build
 npm test
