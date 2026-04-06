@@ -6,14 +6,22 @@
 
 set -euo pipefail
 
-DAEMON_URL="${CLAUDE_DISCORD_URL:-http://127.0.0.1:${CLAUDE_DISCORD_PORT:-19452}}"
-CURL_OPTS="--connect-timeout 1 --max-time 1 -s -o /dev/null"
+# Config directory with legacy fallback
+CONFIG_DIR="$HOME/.claude-presence"
+if [ ! -d "$CONFIG_DIR" ] && [ -d "$HOME/.claude-discord-status" ]; then
+  CONFIG_DIR="$HOME/.claude-discord-status"
+fi
 
-CONFIG_DIR="$HOME/.claude-discord-status"
 CONFIG_FILE="$CONFIG_DIR/config.json"
 LOG_FILE="$CONFIG_DIR/daemon.log"
+PID_FILE="$CONFIG_DIR/daemon.pid"
 LOCK_DIR="$CONFIG_DIR/autostart.lock"
-AUTOSTART_COOLDOWN=60
+AUTOSTART_COOLDOWN=10
+
+# Env var resolution: new names first, old names as fallback
+DAEMON_PORT="${CLAUDE_PRESENCE_PORT:-${CLAUDE_DISCORD_PORT:-19452}}"
+DAEMON_URL="${CLAUDE_PRESENCE_URL:-${CLAUDE_DISCORD_URL:-http://127.0.0.1:${DAEMON_PORT}}}"
+CURL_OPTS="--connect-timeout 1 --max-time 1 -s -o /dev/null"
 
 # Cross-platform file modification time (epoch seconds)
 file_mtime() {
@@ -22,12 +30,36 @@ file_mtime() {
 
 # Auto-start daemon if not reachable
 ensure_daemon() {
-  # Quick health check
+  # Step 1: Quick health check — if reachable, we're done
   if curl --connect-timeout 0.5 --max-time 1 -s -o /dev/null "${DAEMON_URL}/health" 2>/dev/null; then
     return 0
   fi
 
-  # Check cooldown via lock dir
+  # Step 2: Check PID file for stale process detection
+  if [ -f "$PID_FILE" ]; then
+    local pid
+    pid=$(cat "$PID_FILE" 2>/dev/null) || true
+
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+      # Process is alive but HTTP not ready — wait briefly
+      local attempts=0
+      while [ "$attempts" -lt 5 ]; do
+        sleep 0.3
+        if curl --connect-timeout 0.3 --max-time 0.5 -s -o /dev/null "${DAEMON_URL}/health" 2>/dev/null; then
+          return 0
+        fi
+        attempts=$((attempts + 1))
+      done
+      # Daemon is alive but not responding — probably starting from another hook
+      return 1
+    else
+      # Stale PID — process is dead. Clean up and fall through to restart.
+      rm -f "$PID_FILE"
+      rmdir "$LOCK_DIR" 2>/dev/null || true
+    fi
+  fi
+
+  # Step 3: Check cooldown lock
   if [ -d "$LOCK_DIR" ]; then
     local lock_age
     lock_age=$(( $(date +%s) - $(file_mtime "$LOCK_DIR") ))
@@ -37,12 +69,12 @@ ensure_daemon() {
     rmdir "$LOCK_DIR" 2>/dev/null || true
   fi
 
-  # Acquire lock (atomic mkdir)
+  # Step 4: Acquire lock (atomic mkdir)
   if ! mkdir "$LOCK_DIR" 2>/dev/null; then
     return 1
   fi
 
-  # Resolve daemon path
+  # Step 5: Resolve daemon path
   local daemon_path=""
 
   # Strategy 1: Read from config file
@@ -66,19 +98,22 @@ ensure_daemon() {
   # Ensure config dir exists
   mkdir -p "$CONFIG_DIR" 2>/dev/null || true
 
-  # Spawn daemon in background
+  # Step 6: Spawn daemon in background
   nohup node "$daemon_path" >> "$LOG_FILE" 2>&1 &
 
-  # Poll for readiness
+  # Step 7: Poll for readiness (10 attempts, 300ms each = 3s max)
   local attempts=0
-  while [ "$attempts" -lt 8 ]; do
-    sleep 0.2
+  while [ "$attempts" -lt 10 ]; do
+    sleep 0.3
     if curl --connect-timeout 0.3 --max-time 0.5 -s -o /dev/null "${DAEMON_URL}/health" 2>/dev/null; then
+      # Success — remove lock so future hooks don't hit cooldown
+      rmdir "$LOCK_DIR" 2>/dev/null || true
       return 0
     fi
     attempts=$((attempts + 1))
   done
 
+  # Failed to start — leave lock for cooldown
   return 1
 }
 
