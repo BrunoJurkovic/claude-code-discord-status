@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock modules before importing the hook
+// Mock node:child_process and node:fs before importing hook module
 vi.mock('node:child_process', () => ({
   spawn: vi.fn(() => ({ unref: vi.fn(), pid: 12345 })),
 }));
@@ -19,38 +19,18 @@ vi.mock('node:fs', async () => {
   };
 });
 
-// We test the internal logic by exercising the exported handleHook
-// through controlled stdin and mocked fetch.
+import { processHookEvent } from '../src/hook.js';
 
-describe('Hook — tool mapping', () => {
-  it('maps known tools to expected icons', () => {
-    const TOOL_MAP: Record<string, { details: string; icon: string; iconText: string }> = {
-      Write: { details: 'Editing a file', icon: 'coding', iconText: 'Writing code' },
-      Edit: { details: 'Editing a file', icon: 'coding', iconText: 'Writing code' },
-      Bash: { details: 'Running a command', icon: 'terminal', iconText: 'Running a command' },
-      Read: { details: 'Reading a file', icon: 'reading', iconText: 'Reading files' },
-      Grep: { details: 'Searching codebase', icon: 'searching', iconText: 'Searching' },
-      Glob: { details: 'Searching codebase', icon: 'searching', iconText: 'Searching' },
-      WebSearch: { details: 'Searching the web', icon: 'searching', iconText: 'Searching' },
-      WebFetch: { details: 'Searching the web', icon: 'searching', iconText: 'Searching' },
-      Task: { details: 'Running a subtask', icon: 'thinking', iconText: 'Thinking...' },
-    };
-
-    expect(TOOL_MAP.Write.icon).toBe('coding');
-    expect(TOOL_MAP.Bash.icon).toBe('terminal');
-    expect(TOOL_MAP.Read.icon).toBe('reading');
-    expect(TOOL_MAP.Grep.icon).toBe('searching');
-    expect(TOOL_MAP.Task.icon).toBe('thinking');
+function makeInput(overrides: Record<string, unknown> = {}) {
+  return JSON.stringify({
+    session_id: 'test-session',
+    hook_event_name: 'SessionStart',
+    cwd: '/tmp/project',
+    ...overrides,
   });
+}
 
-  it('falls back for unknown tools', () => {
-    const fallback = { details: 'Working...', icon: 'coding', iconText: 'Working' };
-    expect(fallback.details).toBe('Working...');
-    expect(fallback.icon).toBe('coding');
-  });
-});
-
-describe('Hook — event handling via fetch', () => {
+describe('processHookEvent', () => {
   let fetchCalls: Array<{ url: string; body: unknown }>;
   const originalFetch = globalThis.fetch;
 
@@ -73,49 +53,66 @@ describe('Hook — event handling via fetch', () => {
     globalThis.fetch = originalFetch;
   });
 
-  it('posts correct data for SessionStart', async () => {
-    const daemonUrl = 'http://127.0.0.1:19452';
+  it('does nothing for empty input', async () => {
+    await processHookEvent('');
+    expect(fetchCalls).toHaveLength(0);
+  });
 
-    // Simulate the POST calls that handleHook would make for SessionStart
-    await fetch(`${daemonUrl}/sessions/test-123/start`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pid: 1234, projectPath: '/tmp/project' }),
-    });
-    await fetch(`${daemonUrl}/sessions/test-123/activity`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        details: 'Starting session...',
-        smallImageKey: 'starting',
-        smallImageText: 'Starting up',
-        priority: 'hook',
-      }),
-    });
+  it('does nothing for invalid JSON', async () => {
+    await processHookEvent('not json');
+    expect(fetchCalls).toHaveLength(0);
+  });
+
+  it('does nothing when session_id is missing', async () => {
+    await processHookEvent(JSON.stringify({ hook_event_name: 'SessionStart' }));
+    expect(fetchCalls).toHaveLength(0);
+  });
+
+  it('does nothing when hook_event_name is missing', async () => {
+    await processHookEvent(JSON.stringify({ session_id: 'test' }));
+    expect(fetchCalls).toHaveLength(0);
+  });
+
+  it('sends start + activity for SessionStart', async () => {
+    await processHookEvent(makeInput());
 
     expect(fetchCalls).toHaveLength(2);
-    expect(fetchCalls[0].url).toContain('/sessions/test-123/start');
-    expect(fetchCalls[0].body).toEqual({ pid: 1234, projectPath: '/tmp/project' });
-    expect(fetchCalls[1].url).toContain('/sessions/test-123/activity');
+    expect(fetchCalls[0].url).toContain('/sessions/test-session/start');
+    expect(fetchCalls[0].body).toMatchObject({ projectPath: '/tmp/project' });
+    expect(fetchCalls[1].url).toContain('/sessions/test-session/activity');
     expect(fetchCalls[1].body).toMatchObject({
       details: 'Starting session...',
       smallImageKey: 'starting',
     });
   });
 
-  it('posts correct data for PreToolUse with known tool', async () => {
-    const daemonUrl = 'http://127.0.0.1:19452';
+  it('sends resume message for SessionStart with resume matcher', async () => {
+    await processHookEvent(makeInput({ matcher: 'resume' }));
 
-    await fetch(`${daemonUrl}/sessions/test-123/activity`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        details: 'Running a command',
-        smallImageKey: 'terminal',
-        smallImageText: 'Running a command',
-        priority: 'hook',
-      }),
+    expect(fetchCalls[1].body).toMatchObject({
+      details: 'Resuming session...',
     });
+  });
+
+  it('sends end for SessionEnd', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'SessionEnd' }));
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].url).toContain('/sessions/test-session/end');
+  });
+
+  it('sends thinking for UserPromptSubmit', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'UserPromptSubmit' }));
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].body).toMatchObject({
+      details: 'Thinking...',
+      smallImageKey: 'thinking',
+    });
+  });
+
+  it('maps known tool to correct icon for PreToolUse', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'PreToolUse', tool_name: 'Bash' }));
 
     expect(fetchCalls).toHaveLength(1);
     expect(fetchCalls[0].body).toMatchObject({
@@ -124,19 +121,54 @@ describe('Hook — event handling via fetch', () => {
     });
   });
 
-  it('posts correct data for Stop', async () => {
-    const daemonUrl = 'http://127.0.0.1:19452';
+  it('uses fallback for unknown tool in PreToolUse', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'PreToolUse', tool_name: 'UnknownTool' }));
 
-    await fetch(`${daemonUrl}/sessions/test-123/activity`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        details: 'Finished',
-        smallImageKey: 'idle',
-        smallImageText: 'Idle',
-        priority: 'hook',
-      }),
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].body).toMatchObject({
+      details: 'Working...',
+      smallImageKey: 'coding',
     });
+  });
+
+  it('maps Write tool to coding icon', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'PreToolUse', tool_name: 'Write' }));
+
+    expect(fetchCalls[0].body).toMatchObject({
+      details: 'Editing a file',
+      smallImageKey: 'coding',
+    });
+  });
+
+  it('maps Read tool to reading icon', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'PreToolUse', tool_name: 'Read' }));
+
+    expect(fetchCalls[0].body).toMatchObject({
+      details: 'Reading a file',
+      smallImageKey: 'reading',
+    });
+  });
+
+  it('maps Grep tool to searching icon', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'PreToolUse', tool_name: 'Grep' }));
+
+    expect(fetchCalls[0].body).toMatchObject({
+      details: 'Searching codebase',
+      smallImageKey: 'searching',
+    });
+  });
+
+  it('maps Task tool to thinking icon', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'PreToolUse', tool_name: 'Task' }));
+
+    expect(fetchCalls[0].body).toMatchObject({
+      details: 'Running a subtask',
+      smallImageKey: 'thinking',
+    });
+  });
+
+  it('sends idle for Stop', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'Stop' }));
 
     expect(fetchCalls).toHaveLength(1);
     expect(fetchCalls[0].body).toMatchObject({
@@ -145,32 +177,8 @@ describe('Hook — event handling via fetch', () => {
     });
   });
 
-  it('posts correct data for SessionEnd', async () => {
-    const daemonUrl = 'http://127.0.0.1:19452';
-
-    await fetch(`${daemonUrl}/sessions/test-123/end`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-
-    expect(fetchCalls).toHaveLength(1);
-    expect(fetchCalls[0].url).toContain('/sessions/test-123/end');
-  });
-
-  it('posts correct data for Notification', async () => {
-    const daemonUrl = 'http://127.0.0.1:19452';
-
-    await fetch(`${daemonUrl}/sessions/test-123/activity`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        details: 'Waiting for input',
-        smallImageKey: 'idle',
-        smallImageText: 'Idle',
-        priority: 'hook',
-      }),
-    });
+  it('sends idle for Notification', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'Notification' }));
 
     expect(fetchCalls).toHaveLength(1);
     expect(fetchCalls[0].body).toMatchObject({
@@ -178,37 +186,10 @@ describe('Hook — event handling via fetch', () => {
       smallImageKey: 'idle',
     });
   });
-});
 
-describe('Hook — daemon URL resolution', () => {
-  const originalEnv = { ...process.env };
+  it('ignores unknown event types', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'SomeNewEvent' }));
 
-  afterEach(() => {
-    process.env = { ...originalEnv };
-  });
-
-  it('uses default port when no env vars set', () => {
-    delete process.env.CLAUDE_DISCORD_URL;
-    delete process.env.CLAUDE_DISCORD_PORT;
-
-    const port = process.env.CLAUDE_DISCORD_PORT ?? '19452';
-    const url = process.env.CLAUDE_DISCORD_URL ?? `http://127.0.0.1:${port}`;
-    expect(url).toBe('http://127.0.0.1:19452');
-  });
-
-  it('respects CLAUDE_DISCORD_PORT env var', () => {
-    delete process.env.CLAUDE_DISCORD_URL;
-    process.env.CLAUDE_DISCORD_PORT = '9999';
-
-    const port = process.env.CLAUDE_DISCORD_PORT ?? '19452';
-    const url = process.env.CLAUDE_DISCORD_URL ?? `http://127.0.0.1:${port}`;
-    expect(url).toBe('http://127.0.0.1:9999');
-  });
-
-  it('respects CLAUDE_DISCORD_URL env var', () => {
-    process.env.CLAUDE_DISCORD_URL = 'http://custom:1234';
-
-    const url = process.env.CLAUDE_DISCORD_URL ?? 'http://127.0.0.1:19452';
-    expect(url).toBe('http://custom:1234');
+    expect(fetchCalls).toHaveLength(0);
   });
 });

@@ -18,6 +18,11 @@ const COUNTER_MAP: Record<string, keyof ActivityCounts> = {
 export class SessionRegistry {
   private sessions = new Map<string, Session>();
   private onChangeCallback: (() => void) | null = null;
+  private readonly platform: NodeJS.Platform;
+
+  constructor(platform?: NodeJS.Platform) {
+    this.platform = platform ?? process.platform;
+  }
 
   onChange(callback: () => void): void {
     this.onChangeCallback = callback;
@@ -111,7 +116,7 @@ export class SessionRegistry {
 
       // Check PID liveness
       if (!this.isPidAlive(session.pid)) {
-        if (process.platform === 'win32') {
+        if (this.platform === 'win32') {
           // On Windows, hook PIDs are transient shells — mark idle instead of removing.
           // The session stays alive as long as hooks keep refreshing lastActivityAt.
           if (session.status !== 'idle') {

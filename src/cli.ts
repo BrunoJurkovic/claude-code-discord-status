@@ -498,10 +498,7 @@ async function setup(): Promise<void> {
   // --- Installation ---
 
   // On Windows, use the Node.js hook (CLI subcommand); on Unix, use the bash script.
-  // CLAUDE_PID=$PPID passes Claude Code's real PID (bash's parent) to the Node.js hook,
-  // so the daemon's PID liveness check sees the correct long-lived process.
-  const hookCommand =
-    process.platform === 'win32' ? 'CLAUDE_PID=$PPID claude-discord-status hook' : copyHookScript();
+  const hookCommand = process.platform === 'win32' ? 'claude-presence hook' : copyHookScript();
 
   const claudeSettingsPath = join(homedir(), '.claude', 'settings.json');
 
@@ -520,7 +517,11 @@ async function setup(): Promise<void> {
     for (const event of Object.keys(existingHooks)) {
       existingHooks[event] = existingHooks[event].filter((entry: unknown) => {
         const str = JSON.stringify(entry);
-        return !str.includes('claude-hook.sh') && !str.includes('claude-discord-status hook');
+        return (
+          !str.includes('claude-hook.sh') &&
+          !str.includes('claude-discord-status hook') &&
+          !str.includes('claude-presence hook')
+        );
       });
       if (existingHooks[event].length === 0) {
         delete existingHooks[event];
@@ -672,7 +673,11 @@ async function uninstall(): Promise<void> {
         for (const event of Object.keys(settings.hooks)) {
           settings.hooks[event] = (settings.hooks[event] as unknown[]).filter((entry: unknown) => {
             const str = JSON.stringify(entry);
-            return !str.includes('claude-hook.sh') && !str.includes('claude-discord-status hook');
+            return (
+              !str.includes('claude-hook.sh') &&
+              !str.includes('claude-discord-status hook') &&
+              !str.includes('claude-presence hook')
+            );
           });
           if (settings.hooks[event].length === 0) {
             delete settings.hooks[event];

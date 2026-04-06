@@ -7,10 +7,14 @@ import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, statSyn
 import { spawn } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CONFIG_DIR, CONFIG_FILE, LOG_FILE, DEFAULT_PORT } from './shared/constants.js';
-
-const AUTOSTART_LOCK_FILE = resolve(CONFIG_DIR, 'autostart.lock');
-const AUTOSTART_COOLDOWN = 60_000; // 60 seconds
+import {
+  CONFIG_DIR,
+  CONFIG_FILE,
+  LOG_FILE,
+  DEFAULT_PORT,
+  AUTOSTART_LOCK_FILE,
+  AUTOSTART_COOLDOWN,
+} from './shared/constants.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -45,8 +49,11 @@ function readStdin(): Promise<string> {
 }
 
 function getDaemonUrl(): string {
-  const port = process.env.CLAUDE_DISCORD_PORT ?? String(DEFAULT_PORT);
-  return process.env.CLAUDE_DISCORD_URL ?? `http://127.0.0.1:${port}`;
+  const port =
+    process.env.CLAUDE_PRESENCE_PORT ?? process.env.CLAUDE_DISCORD_PORT ?? String(DEFAULT_PORT);
+  return (
+    process.env.CLAUDE_PRESENCE_URL ?? process.env.CLAUDE_DISCORD_URL ?? `http://127.0.0.1:${port}`
+  );
 }
 
 async function postJson(url: string, data: unknown): Promise<void> {
@@ -162,104 +169,109 @@ async function ensureDaemon(daemonUrl: string): Promise<boolean> {
   return false;
 }
 
+/**
+ * Process a hook event from its raw JSON string.
+ * Exported separately from handleHook() for testability.
+ */
+export async function processHookEvent(raw: string): Promise<void> {
+  if (!raw.trim()) return;
+
+  let input: HookInput;
+  try {
+    input = JSON.parse(raw) as HookInput;
+  } catch {
+    return;
+  }
+
+  const sessionId = input.session_id;
+  const hookEvent = input.hook_event_name;
+  if (!sessionId || !hookEvent) return;
+
+  const daemonUrl = getDaemonUrl();
+
+  // Ensure daemon is running (auto-start if needed)
+  await ensureDaemon(daemonUrl);
+
+  const cwd = input.cwd ?? '';
+  // process.ppid gives the PID of the shell that spawned this hook process.
+  // On both Unix and Windows, Claude Code spawns hooks via a shell, so ppid
+  // points back to the Claude Code process (or its immediate shell wrapper).
+  const pid = process.ppid;
+
+  switch (hookEvent) {
+    case 'SessionStart': {
+      const details = input.matcher === 'resume' ? 'Resuming session...' : 'Starting session...';
+      await postJson(`${daemonUrl}/sessions/${sessionId}/start`, {
+        pid,
+        projectPath: cwd,
+      });
+      await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
+        details,
+        smallImageKey: 'starting',
+        smallImageText: 'Starting up',
+        priority: 'hook',
+      });
+      break;
+    }
+
+    case 'SessionEnd':
+      await postJson(`${daemonUrl}/sessions/${sessionId}/end`, {});
+      break;
+
+    case 'UserPromptSubmit':
+      await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
+        details: 'Thinking...',
+        smallImageKey: 'thinking',
+        smallImageText: 'Thinking...',
+        priority: 'hook',
+      });
+      break;
+
+    case 'PreToolUse': {
+      const toolName = input.tool_name ?? '';
+      const tool = TOOL_MAP[toolName] ?? {
+        details: 'Working...',
+        icon: 'coding',
+        iconText: 'Working',
+      };
+      const details = tool.details.slice(0, 128);
+      await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
+        details,
+        smallImageKey: tool.icon,
+        smallImageText: tool.iconText,
+        priority: 'hook',
+      });
+      break;
+    }
+
+    case 'Stop':
+      await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
+        details: 'Finished',
+        smallImageKey: 'idle',
+        smallImageText: 'Idle',
+        priority: 'hook',
+      });
+      break;
+
+    case 'Notification':
+      await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
+        details: 'Waiting for input',
+        smallImageKey: 'idle',
+        smallImageText: 'Idle',
+        priority: 'hook',
+      });
+      break;
+
+    default:
+      // Unknown event, ignore
+      break;
+  }
+}
+
 export async function handleHook(): Promise<void> {
   try {
     const raw = await readStdin();
-    if (!raw.trim()) {
-      process.exit(0);
-    }
-
-    let input: HookInput;
-    try {
-      input = JSON.parse(raw) as HookInput;
-    } catch {
-      process.exit(0);
-    }
-
-    const sessionId = input.session_id;
-    const hookEvent = input.hook_event_name;
-    if (!sessionId || !hookEvent) {
-      process.exit(0);
-    }
-
-    const daemonUrl = getDaemonUrl();
-
-    // Ensure daemon is running (auto-start if needed)
-    await ensureDaemon(daemonUrl);
-
-    const cwd = input.cwd ?? '';
-    // CLAUDE_PID is set by the hook command ("CLAUDE_PID=$PPID claude-discord-status hook")
-    // so it contains Claude Code's actual PID (bash's parent), not the intermediate shell's PID.
-    const pid = process.env.CLAUDE_PID ? parseInt(process.env.CLAUDE_PID, 10) : process.ppid;
-
-    switch (hookEvent) {
-      case 'SessionStart': {
-        const details = input.matcher === 'resume' ? 'Resuming session...' : 'Starting session...';
-        await postJson(`${daemonUrl}/sessions/${sessionId}/start`, {
-          pid,
-          projectPath: cwd,
-        });
-        await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
-          details,
-          smallImageKey: 'starting',
-          smallImageText: 'Starting up',
-          priority: 'hook',
-        });
-        break;
-      }
-
-      case 'SessionEnd':
-        await postJson(`${daemonUrl}/sessions/${sessionId}/end`, {});
-        break;
-
-      case 'UserPromptSubmit':
-        await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
-          details: 'Thinking...',
-          smallImageKey: 'thinking',
-          smallImageText: 'Thinking...',
-          priority: 'hook',
-        });
-        break;
-
-      case 'PreToolUse': {
-        const toolName = input.tool_name ?? '';
-        const tool = TOOL_MAP[toolName] ?? {
-          details: 'Working...',
-          icon: 'coding',
-          iconText: 'Working',
-        };
-        const details = tool.details.slice(0, 128);
-        await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
-          details,
-          smallImageKey: tool.icon,
-          smallImageText: tool.iconText,
-          priority: 'hook',
-        });
-        break;
-      }
-
-      case 'Stop':
-        await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
-          details: 'Finished',
-          smallImageKey: 'idle',
-          smallImageText: 'Idle',
-          priority: 'hook',
-        });
-        break;
-
-      case 'Notification':
-        await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
-          details: 'Waiting for input',
-          smallImageKey: 'idle',
-          smallImageText: 'Idle',
-          priority: 'hook',
-        });
-        break;
-
-      default:
-        // Unknown event, ignore
-        break;
-    }
+    await processHookEvent(raw);
   } catch {
     // Never block Claude Code
   }

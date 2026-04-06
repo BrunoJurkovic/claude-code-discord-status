@@ -29,7 +29,7 @@ export const REMOVE_TIMEOUT = 1_800_000; // 30 minutes
 export const RECONNECT_INTERVAL = 5_000; // 5 seconds
 
 export const AUTOSTART_LOCK_FILE = join(CONFIG_DIR, 'autostart.lock');
-export const AUTOSTART_COOLDOWN = 60_000; // 60 seconds
+export const AUTOSTART_COOLDOWN = 10_000; // 10 seconds (matches bash hook)
 
 export const SMALL_IMAGE_MAP: Record<string, { key: string; text: string }> = {
   starting: { key: 'starting', text: 'Starting up' },
