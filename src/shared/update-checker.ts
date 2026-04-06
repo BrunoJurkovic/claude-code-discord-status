@@ -47,6 +47,7 @@ export function readCachedUpdate(): UpdateCheckResult | null {
 
 export function isUpdateCheckDisabled(configUpdateCheck: boolean): boolean {
   if (process.env.NO_UPDATE_NOTIFIER === '1') return true;
+  if (process.env.CLAUDE_PRESENCE_UPDATE_CHECK === '0') return true;
   if (process.env.CLAUDE_DISCORD_UPDATE_CHECK === '0') return true;
   return !configUpdateCheck;
 }

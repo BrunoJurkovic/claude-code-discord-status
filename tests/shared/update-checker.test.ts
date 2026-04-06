@@ -106,6 +106,7 @@ describe('checkForUpdate', () => {
     vi.resetModules();
     process.env = { ...originalEnv };
     delete process.env.NO_UPDATE_NOTIFIER;
+    delete process.env.CLAUDE_PRESENCE_UPDATE_CHECK;
     delete process.env.CLAUDE_DISCORD_UPDATE_CHECK;
     vi.mocked(readFileSync).mockImplementation(() => {
       throw new Error('ENOENT');
@@ -135,7 +136,13 @@ describe('checkForUpdate', () => {
     expect(await check(true)).toBeNull();
   });
 
-  it('returns null when disabled via CLAUDE_DISCORD_UPDATE_CHECK=0', async () => {
+  it('returns null when disabled via CLAUDE_PRESENCE_UPDATE_CHECK=0', async () => {
+    process.env.CLAUDE_PRESENCE_UPDATE_CHECK = '0';
+    const check = await loadCheckForUpdate();
+    expect(await check(true)).toBeNull();
+  });
+
+  it('returns null when disabled via legacy CLAUDE_DISCORD_UPDATE_CHECK=0', async () => {
     process.env.CLAUDE_DISCORD_UPDATE_CHECK = '0';
     const check = await loadCheckForUpdate();
     expect(await check(true)).toBeNull();

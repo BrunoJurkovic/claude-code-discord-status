@@ -5,7 +5,7 @@ export const DEFAULT_PORT = 19452;
 export const LARGE_IMAGE_KEY = 'claude-code';
 export const LARGE_IMAGE_TEXT = 'Claude Code';
 
-export const CONFIG_DIR = join(homedir(), '.claude-discord-status');
+export const CONFIG_DIR = join(homedir(), '.claude-presence');
 export const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 export const PID_FILE = join(CONFIG_DIR, 'daemon.pid');
 export const LOG_FILE = join(CONFIG_DIR, 'daemon.log');
@@ -16,7 +16,10 @@ export const PENDING_CHANGELOG_FILE = join(CONFIG_DIR, 'pending-changelog');
 
 export const UPDATE_CHECK_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
 export const NPM_REGISTRY_URL = 'https://registry.npmjs.org';
-export const PACKAGE_NAME = 'claude-code-discord-status';
+export const PACKAGE_NAME = 'claude-presence';
+
+// Legacy paths for migration
+export const LEGACY_CONFIG_DIR = join(homedir(), '.claude-discord-status');
 
 export const DEFAULT_DISCORD_CLIENT_ID = '1472915568930848829';
 

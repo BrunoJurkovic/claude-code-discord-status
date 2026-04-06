@@ -31,22 +31,30 @@ export function loadConfig(): AppConfig {
     }
   }
 
-  const updateCheckEnv = process.env.CLAUDE_DISCORD_UPDATE_CHECK;
+  const updateCheckEnv =
+    process.env.CLAUDE_PRESENCE_UPDATE_CHECK ?? process.env.CLAUDE_DISCORD_UPDATE_CHECK;
   const updateCheck =
     updateCheckEnv !== undefined ? updateCheckEnv !== '0' : (fileConfig.updateCheck ?? true);
 
   return {
     discordClientId:
+      process.env.CLAUDE_PRESENCE_CLIENT_ID ??
       process.env.CLAUDE_DISCORD_CLIENT_ID ??
       fileConfig.discordClientId ??
       DEFAULT_DISCORD_CLIENT_ID,
-    daemonPort: process.env.CLAUDE_DISCORD_PORT
-      ? parseInt(process.env.CLAUDE_DISCORD_PORT, 10)
-      : (fileConfig.daemonPort ?? DEFAULT_PORT),
+    daemonPort: process.env.CLAUDE_PRESENCE_PORT
+      ? parseInt(process.env.CLAUDE_PRESENCE_PORT, 10)
+      : process.env.CLAUDE_DISCORD_PORT
+        ? parseInt(process.env.CLAUDE_DISCORD_PORT, 10)
+        : (fileConfig.daemonPort ?? DEFAULT_PORT),
     staleCheckInterval: fileConfig.staleCheckInterval ?? STALE_CHECK_INTERVAL,
     idleTimeout: fileConfig.idleTimeout ?? IDLE_TIMEOUT,
     removeTimeout: fileConfig.removeTimeout ?? REMOVE_TIMEOUT,
     updateCheck,
-    preset: process.env.CLAUDE_DISCORD_PRESET ?? fileConfig.preset ?? 'minimal',
+    preset:
+      process.env.CLAUDE_PRESENCE_PRESET ??
+      process.env.CLAUDE_DISCORD_PRESET ??
+      fileConfig.preset ??
+      'minimal',
   };
 }

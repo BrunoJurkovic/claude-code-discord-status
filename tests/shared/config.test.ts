@@ -12,6 +12,12 @@ describe('loadConfig', () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
+    // Clean new env vars
+    delete process.env.CLAUDE_PRESENCE_CLIENT_ID;
+    delete process.env.CLAUDE_PRESENCE_PORT;
+    delete process.env.CLAUDE_PRESENCE_UPDATE_CHECK;
+    delete process.env.CLAUDE_PRESENCE_PRESET;
+    // Clean old env vars
     delete process.env.CLAUDE_DISCORD_CLIENT_ID;
     delete process.env.CLAUDE_DISCORD_PORT;
     delete process.env.CLAUDE_DISCORD_UPDATE_CHECK;
@@ -53,7 +59,7 @@ describe('loadConfig', () => {
     expect(config.daemonPort).toBe(9999);
   });
 
-  it('env vars override config file', async () => {
+  it('CLAUDE_PRESENCE_* env vars override config file', async () => {
     vi.mocked(existsSync).mockReturnValue(true);
     vi.mocked(readFileSync).mockReturnValue(
       JSON.stringify({
@@ -62,8 +68,8 @@ describe('loadConfig', () => {
       }),
     );
 
-    process.env.CLAUDE_DISCORD_CLIENT_ID = 'env-client-id';
-    process.env.CLAUDE_DISCORD_PORT = '8888';
+    process.env.CLAUDE_PRESENCE_CLIENT_ID = 'env-client-id';
+    process.env.CLAUDE_PRESENCE_PORT = '8888';
 
     const config = await loadConfig();
     expect(config.discordClientId).toBe('env-client-id');
@@ -82,7 +88,7 @@ describe('loadConfig', () => {
     expect(config.updateCheck).toBe(false);
   });
 
-  it('CLAUDE_DISCORD_UPDATE_CHECK=0 overrides config', async () => {
+  it('CLAUDE_PRESENCE_UPDATE_CHECK=0 overrides config', async () => {
     vi.mocked(existsSync).mockReturnValue(true);
     vi.mocked(readFileSync).mockReturnValue(
       JSON.stringify({
@@ -90,7 +96,7 @@ describe('loadConfig', () => {
       }),
     );
 
-    process.env.CLAUDE_DISCORD_UPDATE_CHECK = '0';
+    process.env.CLAUDE_PRESENCE_UPDATE_CHECK = '0';
 
     const config = await loadConfig();
     expect(config.updateCheck).toBe(false);
@@ -124,7 +130,7 @@ describe('loadConfig', () => {
     expect(config.preset).toBe('professional');
   });
 
-  it('CLAUDE_DISCORD_PRESET env var overrides config file', async () => {
+  it('CLAUDE_PRESENCE_PRESET env var overrides config file', async () => {
     vi.mocked(existsSync).mockReturnValue(true);
     vi.mocked(readFileSync).mockReturnValue(
       JSON.stringify({
@@ -132,9 +138,30 @@ describe('loadConfig', () => {
       }),
     );
 
-    process.env.CLAUDE_DISCORD_PRESET = 'minimal';
+    process.env.CLAUDE_PRESENCE_PRESET = 'minimal';
 
     const config = await loadConfig();
     expect(config.preset).toBe('minimal');
+  });
+
+  it('old CLAUDE_DISCORD_* env vars work as fallback', async () => {
+    vi.mocked(existsSync).mockReturnValue(false);
+
+    process.env.CLAUDE_DISCORD_CLIENT_ID = 'legacy-id';
+    process.env.CLAUDE_DISCORD_PORT = '7777';
+
+    const config = await loadConfig();
+    expect(config.discordClientId).toBe('legacy-id');
+    expect(config.daemonPort).toBe(7777);
+  });
+
+  it('new CLAUDE_PRESENCE_* takes precedence over old CLAUDE_DISCORD_*', async () => {
+    vi.mocked(existsSync).mockReturnValue(false);
+
+    process.env.CLAUDE_PRESENCE_CLIENT_ID = 'new-id';
+    process.env.CLAUDE_DISCORD_CLIENT_ID = 'old-id';
+
+    const config = await loadConfig();
+    expect(config.discordClientId).toBe('new-id');
   });
 });
