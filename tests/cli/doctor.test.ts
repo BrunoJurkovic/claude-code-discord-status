@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { HOOK_FILE } from '../../src/shared/constants.js';
 
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(),
@@ -173,14 +174,13 @@ describe('doctor checks', () => {
 
   describe('checkHookPaths', () => {
     it('passes when all hooks point to stable path', async () => {
-      const home = process.env.HOME ?? '/Users/test';
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockReturnValue(
         JSON.stringify({
           hooks: {
             SessionStart: [
               {
-                hooks: [{ command: `${home}/.claude-presence/claude-hook.sh` }],
+                hooks: [{ command: HOOK_FILE }],
               },
             ],
           },
