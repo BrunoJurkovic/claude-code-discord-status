@@ -586,7 +586,7 @@ async function setup(): Promise<void> {
   p.outro('Setup complete!');
 }
 
-function createHookConfig(hookCommand: string) {
+export function createHookConfig(hookCommand: string) {
   const syncHook = {
     matcher: '',
     hooks: [
