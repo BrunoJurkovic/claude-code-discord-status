@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0](https://github.com/BrunoJurkovic/claude-code-discord-status/compare/v1.3.0...v2.0.0) (2026-04-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* binary renamed from claude-discord-status to claude-presence, config dir moved from ~/.claude-discord-status/ to ~/.claude-presence/, env vars renamed from CLAUDE_DISCORD_* to CLAUDE_PRESENCE_*
+
+### feat\
+
+* rename to claude-presence ([9905e18](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/9905e186eefd17ebe77ffd610a8bf43d5e698cd6))
+
+
+### Features
+
+* add Windows support ([#10](https://github.com/BrunoJurkovic/claude-code-discord-status/issues/10)) ([c693bbd](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/c693bbd654ec8866252b792409ed700886d4b342))
+* rename to claude-presence with UX overhaul (v2.0.0) ([#8](https://github.com/BrunoJurkovic/claude-code-discord-status/issues/8)) ([146b840](https://github.com/BrunoJurkovic/claude-code-discord-status/commit/146b840c995f809517bfd9a013ac0c141af73df7))
+
 ## [1.3.0](https://github.com/BrunoJurkovic/claude-code-discord-status/compare/v1.2.0...v1.3.0) (2026-03-17)
 
 
