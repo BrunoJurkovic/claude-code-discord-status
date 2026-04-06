@@ -22,6 +22,7 @@ import {
   PACKAGE_NAME,
 } from './shared/constants.js';
 import { loadConfig } from './shared/config.js';
+import { migrateFromLegacy } from './shared/migration.js';
 import { PRESETS, PRESET_NAMES, DEFAULT_PRESET, isValidPreset } from './presets/index.js';
 import type { PresetName } from './presets/types.js';
 import { formatDuration, statusBadge, connectionBadge, dim } from './cli-utils.js';
@@ -793,6 +794,12 @@ function showHelp(): void {
 
   p.outro('Discord Rich Presence for Claude Code');
   displayPostCommandNotifications();
+}
+
+// Run migration before any command
+const migrated = migrateFromLegacy();
+if (migrated) {
+  p.log.info('Migrated config from ~/.claude-discord-status/ to ~/.claude-presence/');
 }
 
 // Main
