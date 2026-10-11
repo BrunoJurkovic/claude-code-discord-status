@@ -1,4 +1,4 @@
-import type { Session, DiscordActivity, ActivityCounts } from '../shared/types.js';
+import type { Session, DiscordActivity, ActivityCounts, ResolveOptions } from '../shared/types.js';
 import type { MessagePreset } from '../presets/types.js';
 import {
   LARGE_IMAGE_KEY,
@@ -13,14 +13,76 @@ export function resolvePresence(
   sessions: Session[],
   preset: MessagePreset,
   now: number = Date.now(),
+  options: ResolveOptions = {},
 ): DiscordActivity | null {
   if (sessions.length === 0) return null;
+
+  if (options.showDetails) {
+    return buildDetailedActivity(sessions, preset, now);
+  }
 
   if (sessions.length === 1) {
     return buildSingleSessionActivity(sessions[0], preset, now);
   }
 
   return buildMultiSessionActivity(sessions, preset, now);
+}
+
+/**
+ * Detailed mode: the specific action ("Editing hook.ts") on the top line, and
+ * project / session / file / agent counts on the second line.
+ */
+function buildDetailedActivity(
+  sessions: Session[],
+  preset: MessagePreset,
+  now: number,
+): DiscordActivity {
+  const count = sessions.length;
+  const current = getMostRecentSession(sessions)!;
+  const earliest = sessions.reduce((a, b) => (a.startedAt < b.startedAt ? a : b));
+
+  // Top line: the live action, falling back to the preset's pool between tool calls.
+  // Not gated on status: on Windows sessions read as idle once the hook's shell exits,
+  // and Stop/Notification already clear actionDetail.
+  let details = current.actionDetail;
+  if (!details) {
+    const pool =
+      preset.singleSessionDetails[current.smallImageKey] ?? preset.singleSessionDetailsFallback;
+    details = stablePick(pool, current.startedAt, now);
+  }
+  if (count > 1) details = `${details} · ${current.projectName}`;
+
+  const filesEdited = sessions.reduce((n, s) => n + (s.editedFiles?.length ?? 0), 0);
+  const activeAgents = sessions.reduce((n, s) => n + (s.activeAgents ?? 0), 0);
+  const totalAgents = sessions.reduce((n, s) => n + (s.totalAgents ?? 0), 0);
+
+  const parts: string[] = [];
+  parts.push(count === 1 ? current.projectName : `${count} sessions`);
+  if (filesEdited > 0) parts.push(plural(filesEdited, 'file', 'files') + ' edited');
+  if (activeAgents > 0) {
+    parts.push(plural(activeAgents, 'agent', 'agents') + ' running');
+  } else if (totalAgents > 0) {
+    parts.push(plural(totalAgents, 'agent', 'agents') + ' used');
+  }
+  const state = parts.join(' · ');
+
+  const hoverParts = [LARGE_IMAGE_TEXT, plural(count, 'session', 'sessions')];
+  if (totalAgents > 0) hoverParts.push(plural(totalAgents, 'agent', 'agents') + ' spawned');
+  const hover = hoverParts.join(' · ');
+
+  return {
+    details: sanitizeField(details) ?? 'Working',
+    state: sanitizeField(state) ?? 'Working',
+    largeImageKey: LARGE_IMAGE_KEY,
+    largeImageText: sanitizeField(hover) ?? LARGE_IMAGE_TEXT,
+    smallImageKey: current.smallImageKey,
+    smallImageText: sanitizeField(current.smallImageText),
+    startTimestamp: earliest.startedAt,
+  };
+}
+
+function plural(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
 }
 
 function buildSingleSessionActivity(

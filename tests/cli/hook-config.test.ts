@@ -35,7 +35,12 @@ describe('createHookConfig', () => {
       hooks: {
         SessionStart: [syncHook],
         UserPromptSubmit: [asyncHook()],
-        PreToolUse: [asyncHook('Write|Edit|Bash|Read|Grep|Glob|WebSearch|WebFetch|Task')],
+        PreToolUse: [
+          asyncHook(
+            'Write|Edit|MultiEdit|NotebookEdit|Bash|Read|Grep|Glob|WebSearch|WebFetch|Task|Agent',
+          ),
+        ],
+        SubagentStop: [asyncHook()],
         Stop: [asyncHook()],
         Notification: [asyncHook()],
         SessionEnd: [asyncHook()],
@@ -45,13 +50,14 @@ describe('createHookConfig', () => {
 
   const HOOK_PATH = '/home/user/.claude-presence/claude-hook.sh';
 
-  it('produces all 6 lifecycle events', () => {
+  it('produces all 7 lifecycle events', () => {
     const config = createHookConfig(HOOK_PATH);
     const events = Object.keys(config.hooks);
     expect(events).toEqual([
       'SessionStart',
       'UserPromptSubmit',
       'PreToolUse',
+      'SubagentStop',
       'Stop',
       'Notification',
       'SessionEnd',
@@ -73,7 +79,13 @@ describe('createHookConfig', () => {
 
   it('non-SessionStart hooks are async', () => {
     const config = createHookConfig(HOOK_PATH);
-    for (const event of ['UserPromptSubmit', 'Stop', 'Notification', 'SessionEnd'] as const) {
+    for (const event of [
+      'UserPromptSubmit',
+      'SubagentStop',
+      'Stop',
+      'Notification',
+      'SessionEnd',
+    ] as const) {
       const hook = config.hooks[event][0].hooks[0];
       expect(hook.async).toBe(true);
       expect(hook.command).toBe(HOOK_PATH);
@@ -84,7 +96,9 @@ describe('createHookConfig', () => {
   it('PreToolUse has a tool matcher', () => {
     const config = createHookConfig(HOOK_PATH);
     const entry = config.hooks.PreToolUse[0];
-    expect(entry.matcher).toBe('Write|Edit|Bash|Read|Grep|Glob|WebSearch|WebFetch|Task');
+    expect(entry.matcher).toBe(
+      'Write|Edit|MultiEdit|NotebookEdit|Bash|Read|Grep|Glob|WebSearch|WebFetch|Task|Agent',
+    );
     expect(entry.hooks[0].async).toBe(true);
   });
 

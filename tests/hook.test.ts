@@ -121,6 +121,68 @@ describe('processHookEvent', () => {
     });
   });
 
+  it('sends file detail for Edit in PreToolUse', async () => {
+    await processHookEvent(
+      makeInput({
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Edit',
+        tool_input: { file_path: '/tmp/project/src/app.ts' },
+      }),
+    );
+
+    expect(fetchCalls[0].body).toMatchObject({
+      actionDetail: 'Editing app.ts',
+      filePath: '/tmp/project/src/app.ts',
+    });
+    expect(fetchCalls[0].body).not.toHaveProperty('agentEvent');
+  });
+
+  it('sends agent start for Agent in PreToolUse', async () => {
+    await processHookEvent(
+      makeInput({
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Agent',
+        tool_input: { subagent_type: 'Explore' },
+      }),
+    );
+
+    expect(fetchCalls[0].body).toMatchObject({
+      actionDetail: 'Running Explore agent',
+      agentEvent: 'start',
+    });
+  });
+
+  it('re-registers an unknown session and retries the activity', async () => {
+    let first = true;
+    globalThis.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/health')) return new Response('{}', { status: 200 });
+      fetchCalls.push({ url, body: init?.body ? JSON.parse(init.body as string) : null });
+      if (url.endsWith('/activity') && first) {
+        first = false;
+        return new Response('{}', { status: 404 });
+      }
+      return new Response('{}', { status: 200 });
+    }) as typeof fetch;
+
+    await processHookEvent(makeInput({ hook_event_name: 'PreToolUse', tool_name: 'Bash' }));
+
+    expect(fetchCalls.map((c) => c.url.split('/').pop())).toEqual([
+      'activity',
+      'start',
+      'activity',
+    ]);
+    expect(fetchCalls[1].body).toMatchObject({ projectPath: '/tmp/project' });
+  });
+
+  it('sends agent stop for SubagentStop', async () => {
+    await processHookEvent(makeInput({ hook_event_name: 'SubagentStop' }));
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].url).toContain('/sessions/test-session/activity');
+    expect(fetchCalls[0].body).toEqual({ agentEvent: 'stop', priority: 'hook' });
+  });
+
   it('uses fallback for unknown tool in PreToolUse', async () => {
     await processHookEvent(makeInput({ hook_event_name: 'PreToolUse', tool_name: 'UnknownTool' }));
 

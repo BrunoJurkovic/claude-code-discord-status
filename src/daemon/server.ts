@@ -11,6 +11,9 @@ const SessionActivitySchema = z.object({
   details: z.string().max(128).nullable().optional(),
   smallImageKey: z.string().optional(),
   smallImageText: z.string().optional(),
+  actionDetail: z.string().max(128).nullable().optional(),
+  filePath: z.string().max(1024).optional(),
+  agentEvent: z.enum(['start', 'stop']).optional(),
 });
 
 type HealthProvider = () => {

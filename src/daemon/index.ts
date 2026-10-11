@@ -45,7 +45,9 @@ const server = createDaemonServer(registry, () => ({
 // Wire registry changes to presence resolver
 registry.onChange(() => {
   const sessions = registry.getAllSessions();
-  const activity = resolvePresence(sessions, preset);
+  const activity = resolvePresence(sessions, preset, Date.now(), {
+    showDetails: config.showDetails,
+  });
 
   if (activity) {
     discord.setActivity(activity);

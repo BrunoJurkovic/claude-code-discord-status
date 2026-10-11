@@ -32,6 +32,10 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     lastActivityAt: Date.now(),
     status: 'active',
     activityCounts: emptyActivityCounts(),
+    actionDetail: null,
+    editedFiles: [],
+    activeAgents: 0,
+    totalAgents: 0,
     ...overrides,
   };
 }

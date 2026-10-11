@@ -17,6 +17,7 @@ interface ConfigFile {
   removeTimeout?: number;
   updateCheck?: boolean;
   preset?: string;
+  showDetails?: boolean;
 }
 
 export function loadConfig(): AppConfig {
@@ -35,6 +36,10 @@ export function loadConfig(): AppConfig {
     process.env.CLAUDE_PRESENCE_UPDATE_CHECK ?? process.env.CLAUDE_DISCORD_UPDATE_CHECK;
   const updateCheck =
     updateCheckEnv !== undefined ? updateCheckEnv !== '0' : (fileConfig.updateCheck ?? true);
+
+  const showDetailsEnv = process.env.CLAUDE_PRESENCE_SHOW_DETAILS;
+  const showDetails =
+    showDetailsEnv !== undefined ? showDetailsEnv !== '0' : (fileConfig.showDetails ?? true);
 
   return {
     discordClientId:
@@ -56,5 +61,6 @@ export function loadConfig(): AppConfig {
       process.env.CLAUDE_DISCORD_PRESET ??
       fileConfig.preset ??
       'minimal',
+    showDetails,
   };
 }

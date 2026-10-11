@@ -624,7 +624,12 @@ export function createHookConfig(hookCommand: string) {
     hooks: {
       SessionStart: [syncHook],
       UserPromptSubmit: [asyncHook()],
-      PreToolUse: [asyncHook('Write|Edit|Bash|Read|Grep|Glob|WebSearch|WebFetch|Task')],
+      PreToolUse: [
+        asyncHook(
+          'Write|Edit|MultiEdit|NotebookEdit|Bash|Read|Grep|Glob|WebSearch|WebFetch|Task|Agent',
+        ),
+      ],
+      SubagentStop: [asyncHook()],
       Stop: [asyncHook()],
       Notification: [asyncHook()],
       SessionEnd: [asyncHook()],
