@@ -24,6 +24,14 @@ export interface Session {
   lastActivityAt: number;
   status: SessionStatus;
   activityCounts: ActivityCounts;
+  /** Specific current action, e.g. "Editing hook.ts" — null when between tool calls */
+  actionDetail: string | null;
+  /** Unique file paths edited this session */
+  editedFiles: string[];
+  /** Subagents currently running */
+  activeAgents: number;
+  /** Subagents spawned this session */
+  totalAgents: number;
 }
 
 export interface SessionStartRequest {
@@ -31,10 +39,20 @@ export interface SessionStartRequest {
   projectPath: string;
 }
 
+export type AgentEvent = 'start' | 'stop';
+
 export interface SessionActivityRequest {
   details?: string | null;
   smallImageKey?: string;
   smallImageText?: string;
+  actionDetail?: string | null;
+  filePath?: string;
+  agentEvent?: AgentEvent;
+}
+
+export interface ResolveOptions {
+  /** Show file names, commands and agent/file counts instead of generic preset messages */
+  showDetails?: boolean;
 }
 
 export interface DiscordActivity {
@@ -55,6 +73,7 @@ export interface AppConfig {
   removeTimeout: number;
   updateCheck: boolean;
   preset: string;
+  showDetails: boolean;
 }
 
 export interface HealthResponse {

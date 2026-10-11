@@ -25,11 +25,14 @@ interface HookInput {
   tool_name?: string;
   cwd?: string;
   matcher?: string;
+  tool_input?: Record<string, unknown>;
 }
 
 const TOOL_MAP: Record<string, { details: string; icon: string; iconText: string }> = {
   Write: { details: 'Editing a file', icon: 'coding', iconText: 'Writing code' },
   Edit: { details: 'Editing a file', icon: 'coding', iconText: 'Writing code' },
+  MultiEdit: { details: 'Editing a file', icon: 'coding', iconText: 'Writing code' },
+  NotebookEdit: { details: 'Editing a notebook', icon: 'coding', iconText: 'Writing code' },
   Bash: { details: 'Running a command', icon: 'terminal', iconText: 'Running a command' },
   Read: { details: 'Reading a file', icon: 'reading', iconText: 'Reading files' },
   Grep: { details: 'Searching codebase', icon: 'searching', iconText: 'Searching' },
@@ -37,7 +40,93 @@ const TOOL_MAP: Record<string, { details: string; icon: string; iconText: string
   WebSearch: { details: 'Searching the web', icon: 'searching', iconText: 'Searching' },
   WebFetch: { details: 'Searching the web', icon: 'searching', iconText: 'Searching' },
   Task: { details: 'Running a subtask', icon: 'thinking', iconText: 'Thinking...' },
+  Agent: { details: 'Running a subtask', icon: 'thinking', iconText: 'Thinking...' },
 };
+
+const AGENT_TOOLS = new Set(['Task', 'Agent']);
+
+// CLIs whose first argument is a meaningful subcommand ("npm test", "git commit")
+const SUBCOMMAND_CLIS = new Set([
+  'git',
+  'npm',
+  'npx',
+  'pnpm',
+  'yarn',
+  'bun',
+  'cargo',
+  'go',
+  'docker',
+  'dotnet',
+  'uv',
+  'pip',
+  'gh',
+  'kubectl',
+]);
+
+/** Last path segment — handles both / and \ regardless of platform. */
+function fileName(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path;
+}
+
+function str(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+/** Program name (plus subcommand for common CLIs) — never arguments, which may hold secrets. */
+export function summarizeCommand(command: string): string | undefined {
+  const segments = command.split(/&&|\|\||;|\|/).map((s) => s.trim());
+  for (const segment of segments) {
+    // Skip env assignments (FOO=bar cmd) and directory changes
+    const words = segment.split(/\s+/).filter((w) => w && !/^[A-Za-z_][A-Za-z0-9_]*=/.test(w));
+    if (words.length === 0 || words[0] === 'cd') continue;
+    const program = fileName(words[0].replace(/^["']|["']$/g, '')).replace(/\.exe$/i, '');
+    const sub = words[1];
+    if (SUBCOMMAND_CLIS.has(program) && sub && /^[a-z][a-z0-9:-]*$/.test(sub)) {
+      return `${program} ${sub}`;
+    }
+    return program;
+  }
+  return undefined;
+}
+
+/** Specific action text for a tool call, e.g. "Editing hook.ts". */
+export function describeToolCall(
+  toolName: string,
+  toolInput: Record<string, unknown> | undefined,
+): { actionDetail?: string; filePath?: string } {
+  const input = toolInput ?? {};
+  const filePath = str(input.file_path) ?? str(input.notebook_path);
+
+  switch (toolName) {
+    case 'Write':
+    case 'Edit':
+    case 'MultiEdit':
+    case 'NotebookEdit':
+      return filePath ? { actionDetail: `Editing ${fileName(filePath)}`, filePath } : {};
+    case 'Read':
+      return filePath ? { actionDetail: `Reading ${fileName(filePath)}` } : {};
+    case 'Bash': {
+      const command = str(input.command);
+      const summary = command ? summarizeCommand(command) : undefined;
+      return summary ? { actionDetail: `Running ${summary}` } : {};
+    }
+    case 'WebFetch': {
+      try {
+        const host = new URL(String(input.url)).hostname.replace(/^www\./, '');
+        return { actionDetail: `Browsing ${host}` };
+      } catch {
+        return {};
+      }
+    }
+    case 'Task':
+    case 'Agent': {
+      const type = str(input.subagent_type);
+      return { actionDetail: type ? `Running ${type} agent` : 'Running an agent' };
+    }
+    default:
+      return {};
+  }
+}
 
 function readStdin(): Promise<string> {
   return new Promise((resolve) => {
@@ -56,16 +145,18 @@ function getDaemonUrl(): string {
   );
 }
 
-async function postJson(url: string, data: unknown): Promise<void> {
+async function postJson(url: string, data: unknown): Promise<number | null> {
   try {
-    await fetch(url, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
       signal: AbortSignal.timeout(1000),
     });
+    return res.status;
   } catch {
     // Never fail — daemon may be unreachable
+    return null;
   }
 }
 
@@ -198,6 +289,17 @@ export async function processHookEvent(raw: string): Promise<void> {
   // points back to the Claude Code process (or its immediate shell wrapper).
   const pid = process.ppid;
 
+  // The daemon forgets sessions when it restarts — re-register on the fly so an
+  // already-open session reappears on its next event instead of staying blank.
+  const postActivity = async (body: Record<string, unknown>): Promise<void> => {
+    const activityUrl = `${daemonUrl}/sessions/${sessionId}/activity`;
+    const status = await postJson(activityUrl, body);
+    if (status === 404 && cwd) {
+      await postJson(`${daemonUrl}/sessions/${sessionId}/start`, { pid, projectPath: cwd });
+      await postJson(activityUrl, body);
+    }
+  };
+
   switch (hookEvent) {
     case 'SessionStart': {
       const details = input.matcher === 'resume' ? 'Resuming session...' : 'Starting session...';
@@ -219,10 +321,11 @@ export async function processHookEvent(raw: string): Promise<void> {
       break;
 
     case 'UserPromptSubmit':
-      await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
+      await postActivity({
         details: 'Thinking...',
         smallImageKey: 'thinking',
         smallImageText: 'Thinking...',
+        actionDetail: null,
         priority: 'hook',
       });
       break;
@@ -235,29 +338,42 @@ export async function processHookEvent(raw: string): Promise<void> {
         iconText: 'Working',
       };
       const details = tool.details.slice(0, 128);
-      await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
+      const { actionDetail, filePath } = describeToolCall(toolName, input.tool_input);
+      await postActivity({
         details,
         smallImageKey: tool.icon,
         smallImageText: tool.iconText,
+        actionDetail: actionDetail?.slice(0, 128) ?? null,
+        ...(filePath && { filePath }),
+        ...(AGENT_TOOLS.has(toolName) && { agentEvent: 'start' }),
         priority: 'hook',
       });
       break;
     }
 
+    case 'SubagentStop':
+      await postActivity({
+        agentEvent: 'stop',
+        priority: 'hook',
+      });
+      break;
+
     case 'Stop':
-      await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
+      await postActivity({
         details: 'Finished',
         smallImageKey: 'idle',
         smallImageText: 'Idle',
+        actionDetail: null,
         priority: 'hook',
       });
       break;
 
     case 'Notification':
-      await postJson(`${daemonUrl}/sessions/${sessionId}/activity`, {
+      await postActivity({
         details: 'Waiting for input',
         smallImageKey: 'idle',
         smallImageText: 'Idle',
+        actionDetail: null,
         priority: 'hook',
       });
       break;

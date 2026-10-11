@@ -46,6 +46,10 @@ export class SessionRegistry {
       lastActivityAt: now,
       status: 'active',
       activityCounts: emptyActivityCounts(),
+      actionDetail: null,
+      editedFiles: [],
+      activeAgents: 0,
+      totalAgents: 0,
     };
     this.sessions.set(sessionId, session);
     this.notifyChange();
@@ -68,7 +72,24 @@ export class SessionRegistry {
       session.smallImageText = request.smallImageText;
     }
 
-    const counterKey = COUNTER_MAP[session.smallImageKey];
+    if (request.actionDetail !== undefined) {
+      session.actionDetail = request.actionDetail;
+    }
+    if (request.filePath && session.smallImageKey === 'coding') {
+      if (!session.editedFiles.includes(request.filePath)) {
+        session.editedFiles.push(request.filePath);
+      }
+    }
+    if (request.agentEvent === 'start') {
+      session.activeAgents++;
+      session.totalAgents++;
+    } else if (request.agentEvent === 'stop') {
+      session.activeAgents = Math.max(0, session.activeAgents - 1);
+    }
+
+    // A bare agent-stop event is bookkeeping, not a new action — don't count it
+    const counterKey =
+      request.agentEvent === 'stop' ? undefined : COUNTER_MAP[session.smallImageKey];
     if (counterKey) {
       session.activityCounts[counterKey]++;
     }
@@ -133,6 +154,8 @@ export class SessionRegistry {
 
       if (elapsed >= idleTimeout && session.status !== 'idle') {
         session.status = 'idle';
+        // Subagents keep firing hooks while they run, so a long-quiet session has none left
+        session.activeAgents = 0;
         changed = true;
       }
     }
